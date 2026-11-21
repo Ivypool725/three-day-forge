@@ -717,3 +717,120 @@ dialog td {
     left: 5%;
   }
 }
+
+/* 柜台接单与交付 */
+.shop-visit .stage-body {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  justify-content: stretch;
+  align-items: stretch;
+  gap: 0;
+  padding-inline: clamp(12px, 4vw, 58px);
+}
+.shop-floor {
+  position: relative;
+  container-type: size;
+}
+.shop-actor {
+  position: absolute;
+  left: var(--actor-x);
+  bottom: clamp(8px, 1.5dvh, 14px);
+  display: grid;
+  justify-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  translate: -50% 0;
+  user-select: none;
+}
+.shop-actor::before {
+  content: "";
+  position: absolute;
+  left: 25%;
+  right: 25%;
+  bottom: 0;
+  height: 9%;
+  border-radius: 50%;
+  background: #38271970;
+  filter: blur(2px);
+}
+.shop-guest {
+  --actor-x: var(--guest-x);
+}
+.shop-actor .shop-sprite {
+  position: relative;
+  display: block;
+  width: min(clamp(78px, 10vw, 156px), 72cqh, 21dvh);
+  aspect-ratio: 4 / 5;
+  object-fit: contain;
+  object-position: center bottom;
+  image-rendering: pixelated;
+  filter: sepia(0.14) saturate(0.86) brightness(0.95);
+  pointer-events: none;
+}
+.shop-hero.facing-left .shop-sprite {
+  scale: -1 1;
+}
+.shop-hero.walking .shop-sprite {
+  animation: shop-step 280ms steps(2, end) infinite;
+}
+@keyframes shop-step {
+  50% {
+    translate: 0 -5px;
+  }
+}
+.shop-guest[data-act]:hover .shop-sprite {
+  filter: sepia(0.14) saturate(0.86) brightness(1.05);
+}
+.shop-dialogue {
+  display: flex;
+  flex-direction: column;
+  justify-self: center;
+  width: min(100%, 1120px);
+  min-height: clamp(148px, 26dvh, 216px);
+  max-height: 52dvh;
+  overflow: auto;
+  padding: clamp(12px, 2.1dvh, 21px) clamp(14px, 3vw, 42px);
+  border: 3px solid #d2a36b;
+  outline: 2px solid #39251c;
+  background: #261b18f7;
+  box-shadow: inset 0 0 0 2px #82573e, 0 7px 0 #1b1512a3;
+  color: #fff1da;
+}
+.shop-speaker {
+  margin-bottom: 0.28em;
+  color: #ffcf85;
+  font: 700 clamp(21px, 2.25vw, 33px) / 1.2 var(--song);
+}
+.shop-line {
+  font-size: clamp(18px, 2.05vw, 29px);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.shop-dialogue .actions {
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 6px;
+  gap: 6px;
+}
+.shop-dialogue .primary,
+.shop-dialogue .quiet {
+  padding: 0.35em 0.8em;
+  border-radius: 1px;
+}
+.shop-dialogue .primary {
+  background: #f0c784;
+  color: #302017;
+}
+.shop-dialogue .quiet {
+  border-color: #b99069;
+  color: #ffedcf;
+}
+.shop-visit footer {
+  padding-block: clamp(7px, 1.5dvh, 14px);
+}
+@media (max-height: 440px) and (orientation: landscape) {
+  .shop-dialogue {
+    min-height: min(136px, 40dvh);
+  }
+}

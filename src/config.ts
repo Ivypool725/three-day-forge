@@ -1,5 +1,6 @@
 export const CONFIG = {
   view: { width: 1280, height: 720 },
+  shop: { left: 21, start: 31, guest: 71, talkDistance: 17, speed: 55 },
   workshop: { heatAnimationMs: 420 },
   forge: {
     tutorialGreen: 0.2,
