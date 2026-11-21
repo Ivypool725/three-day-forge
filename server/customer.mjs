@@ -13,8 +13,8 @@ export function customerApi(key, transport=fetch) {
     if(req.url?.split('?')[0]!=='/api/customer')return next();
     const send=(status,obj)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(obj));};
     if(req.method!=='POST')return send(405,{source:'local'});
-    if(req.headers.origin && new URL(req.headers.origin,'http://localhost').host!==req.headers.host)return send(403,{source:'local'});
     try {
+      if(req.headers.origin && new URL(req.headers.origin).host!==req.headers.host)return send(403,{source:'local'});
       let body='';for await (const part of req){body+=part;if(body.length>512)return send(413,{source:'local'});}
       let input;try{input=JSON.parse(body);}catch{return send(400,{source:'local'});}
       const {index,grade}=input??{};

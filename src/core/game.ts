@@ -4,12 +4,12 @@ import { orders } from './orders';
 export type Phase = 'letter'|'order'|'heat'|'strike'|'quench'|'inspect'|'receipt'|'threat'|'night'|'reminder'|'final'|'end';
 export type Ending = 'pay'|'expose'|'arrest';
 export interface GameState {
-  phase:Phase; completed:number; silver:number; rep:number; paid:number;
+  records:{grade:string; money:number; rep:number}[]; phase:Phase; completed:number; silver:number; rep:number; paid:number;
   hits:number[]; streak:number; best:number; clues:boolean[]; chest:boolean;
   ending:Ending|"leave"|null; threatSeen:boolean;
 }
 export function newGame(config:Config = CONFIG):GameState {
-  return { phase:'letter', completed:0, silver:0, rep:config.game.startRep, paid:0, hits:[],
+  return { records:[], phase:'letter', completed:0, silver:0, rep:config.game.startRep, paid:0, hits:[],
     streak:0, best:0, clues:[false,false,false], chest:false, ending:null, threatSeen:false };
 }
 export function orderIndex(s:GameState) {
@@ -38,6 +38,7 @@ export function appraisal(hits:number[], index:number) {
 export function deliver(s:GameState) {
   if(s.phase!=='inspect' || s.completed>=orders.length || s.hits.length!==3) return;
   const a=appraisal(s.hits,s.completed);
+  (s.records??=[]).push({grade:a.grade,money:a.money,rep:a.rep});
   s.silver+=a.money; s.rep+=a.rep; s.completed++; s.phase='receipt';
 }
 export function advanceReceipt(s:GameState) {

@@ -53,3 +53,24 @@ blockquote{margin:1em 0;border-left:3px solid #a98151;padding-left:1em;color:#61
 @media(max-height:525px) and (orientation:landscape){header,footer{padding:7px 4vw}.stage-body{padding:0 4vw}.sheet{width:51%;padding:12px 18px}.sheet h1{font-size:26px;margin:.18em 0}.copy{font-size:14px;line-height:1.45}.figures,.steps{margin:.24em 0;padding:.25em 0}.actions{margin-top:.55em}.primary,.secondary,.quiet{padding:.38em .75em}.identity{font-size:15px}.cover p{margin:.6em 0}.cover h1{font-size:14vh}.scene-caption{left:4vw}.cover{margin-left:7%}}
 @media(max-aspect-ratio:9/10){#game canvas{object-position:44% center}header{padding:16px 5vw;flex-wrap:wrap;gap:9px}.identity{font-size:16px}.hud{gap:10px}.cover{max-width:88%;margin:0 6%}.cover h1{font-size:19vw}.cover p{font-size:18px}.title-screen header .meta{font-size:10px}.stage-body{padding:0 4.5vw;align-items:flex-end}.sheet{width:100%;max-height:79%;padding:18px 21px}.character,.workpiece{top:0;left:6%;width:55%;height:40%;place-items:start center}.person{height:100%}.work-art{width:70%;height:90%}.scene-caption{top:8%;left:auto;right:6%;bottom:auto;text-align:right}.play footer{padding:10px 5vw}.figures{gap:8px 18px}.scene-caption b{font-size:24px}.cover-sub{font-size:23px}.sheet h1{font-size:30px}.ending .sheet{max-height:91%}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;transition:none!important}}
+button.workpiece{border:0;background:transparent;pointer-events:auto;color:inherit}
+.anvil,.billet,.swing{position:absolute;object-fit:contain;filter:drop-shadow(0 7px 5px #24191065);pointer-events:none}
+.anvil{width:52%;height:37%;top:45%;left:22%}.billet{width:19%;height:13%;top:39%;left:43%}.swing{width:29%;height:25%;left:47%;top:21%;transform:rotate(-15deg);transform-origin:88% 65%}
+.impact .swing{animation:hammer-down .34s ease-out}.impact .billet{animation:bounce .27s}
+@keyframes hammer-down{0%{transform:rotate(-28deg)}35%{transform:translate(-4%,12%) rotate(-48deg)}72%{transform:rotate(-4deg)}}
+dialog table{width:100%;border-collapse:collapse;margin:.6em 0;font-size:14px}dialog th,dialog td{text-align:left;border-bottom:1px solid #b9a17e;padding:6px 2px}
+@media(max-height:525px) and (orientation:landscape){.anvil{height:46%;top:42%}}
+.portrait{position:absolute;left:7%;top:50%;transform:translateY(-50%);width:min(34vw,61vh);aspect-ratio:1;margin:0;border:1px solid #d3ac74b8;outline:1px solid #33271dc9;outline-offset:4px;background:#3b3024;box-shadow:0 12px 30px #201a15a3;overflow:hidden}
+.portrait .person{width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;filter:none;display:block}
+.portrait figcaption{position:absolute;inset:auto 0 0;display:grid;gap:.1em;padding:11% 6% 5%;background:linear-gradient(transparent,#201d18df);color:#fff1d2}
+.portrait figcaption small{font-size:clamp(10px,.85vw,16px);letter-spacing:.19em}.portrait figcaption b{font:700 clamp(23px,2.5vw,50px) var(--song);letter-spacing:.12em}
+.portrait.happy .person{filter:brightness(1.06) saturate(1.08)}.portrait.sad .person{filter:saturate(.7)}
+@media(max-aspect-ratio:9/10){.portrait{left:5%;top:2%;width:min(58vw,34dvh);transform:none}.portrait figcaption{padding:8% 5% 3%}.portrait figcaption b{font-size:20px}}
+.hotspot{position:absolute;left:9%;top:59%;padding:.6em .9em;background:#211e17d1;color:#ffe5aa;border:1px solid #d4b478;border-radius:3px;font-size:clamp(13px,1.08vw,18px);letter-spacing:.06em}.hotspot:before{content:"";display:inline-block;width:.56em;height:.56em;border:1px solid #ffe1a4;transform:rotate(45deg);margin-right:.5em}
+.scene-caption{pointer-events:none}
+@media(max-aspect-ratio:9/10){.hotspot{top:29%;left:5%}}
+
+.billet{top:47%}.swing{top:31%}.flare{top:29%;width:40%;left:32%}
+#hit-note{min-height:1.3em}#hit-note:empty{display:block}
+.sheet:has(.meter) #hit-note:empty:before{content:"三次落锤，成色由你决定";font-weight:400;color:#705b40}
+.sheet:not(:has(.meter)) #hit-note:empty{display:none}

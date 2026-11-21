@@ -16,6 +16,7 @@ export class TitleScene extends BaseScene {
       this.ctx.game=action==='resume' && run?run:newGame();
       this.ctx.save.writeRun(this.ctx.game);this.music('bgm_main',.34);this.ctx.go('play');
     };
+    this.onKey(e=>{if(e.code==='Space' && !e.repeat && document.activeElement===document.body){e.preventDefault();ui.querySelector<HTMLButtonElement>('.primary')?.click();}});
     this.events.once('shutdown',()=>{ui.onclick=null;});
   }
 }
