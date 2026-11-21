@@ -1,5 +1,6 @@
 {
   "images": {
+    "sprite_constable": "assets/images/sprite/sprite_constable.png",
     "sprite_apprentice": "assets/images/sprite/sprite_apprentice.png",
     "sprite_farmer": "assets/images/sprite/sprite_farmer.png",
     "sprite_cook": "assets/images/sprite/sprite_cook.png",

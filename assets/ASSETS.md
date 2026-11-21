@@ -326,6 +326,7 @@
 | `sprite_hunter` | 32×40 | 猎户。 |
 | `sprite_guard` | 32×40 | 秦军户。 |
 | `sprite_traveler` | 32×40 | 外乡客。 |
+| `sprite_constable` | 1122×1402 | 陈捕头，参考游戏立绘生成的透明底像素小人。 |
 
 ## 要加新素材
 

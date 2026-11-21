@@ -141,7 +141,8 @@ export class PlayScene extends BaseScene {
     else this.music(day === 1 ? "bgm_dusk" : "bgm_main", 0.32);
   }
   private counter(
-    order: (typeof orders)[number],
+    speaker: string,
+    sprite: string,
     line: string,
     actions: string,
   ) {
@@ -150,9 +151,9 @@ export class PlayScene extends BaseScene {
     const waiting = isOrder && !this.talking;
     const heroX = isOrder ? this.shopX : guest - talkDistance;
     const visitor = art(
-      guestSprite[order.portrait],
+      sprite,
       "shop-sprite",
-      waiting ? "与" + order.name + "交谈" : order.name,
+      waiting ? "与" + speaker + "交谈" : speaker,
     );
     return `<div class="shop-floor" style="--guest-x:${guest}%">
       <div class="shop-actor shop-hero" style="--actor-x:${heroX}%">
@@ -160,8 +161,8 @@ export class PlayScene extends BaseScene {
       </div>
       ${waiting ? button("talk", visitor, "shop-actor shop-guest") : `<div class="shop-actor shop-guest">${visitor}</div>`}
     </div>
-    <section class="shop-dialogue" aria-label="${waiting ? "操作提示" : "与" + order.name + "交谈"}">
-      <h2 class="shop-speaker">${waiting ? "有客上门" : order.name}</h2>
+    <section class="shop-dialogue" aria-label="${waiting ? "操作提示" : "与" + speaker + "交谈"}">
+      <h2 class="shop-speaker">${waiting ? "有客上门" : speaker}</h2>
       <p class="shop-line" aria-live="polite">${waiting ? "点顾客上前，或用 ← / → 移动学徒。" : line}</p>
       <div class="actions">${waiting ? button("talk", "上前交谈") : actions}</div>
     </section>`;
@@ -174,21 +175,21 @@ export class PlayScene extends BaseScene {
       o = orders[i],
       p = s.phase,
       day = this.day();
-    const shop = p === "order" || p === "receipt";
+    const night = p === "threat" || p === "reminder" || p === "final";
+    const shop = p === "order" || p === "receipt" || night;
     if (p === "order" && this.shopOrder !== i) {
       this.shopOrder = i;
       this.shopX = this.ctx.config.shop.start;
       this.walkingToGuest = false;
       this.talking = false;
     }
-    const forge = forgePhases.includes(p),
-      night = ["threat", "reminder", "final"].includes(p);
+    const forge = forgePhases.includes(p);
     let bg = night || p === "night" ? "bg_courtyard" : "bg_dawn";
     if (p === "end") bg = s.ending === "expose" ? "bg_dawn" : "bg_courtyard";
-    if (shop) bg = "bg_shop_pixel";
+    if (shop && !night) bg = "bg_shop_pixel";
     const { width, height } = this.ctx.config.view;
     this.bg.setTexture(bg).setDisplaySize(width, height);
-    if (shop) this.bg.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+    if (shop && !night) this.bg.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
     this.soundscape();
     ui.className =
       "play day" +
@@ -214,21 +215,6 @@ export class PlayScene extends BaseScene {
       button("journal", "手记", "mini") +
       "</div></header>";
     let body = "";
-    const figure = (
-      id: string,
-      name: string,
-      where: string,
-      mood = "neutral",
-    ) =>
-      '<figure class="portrait ' +
-      mood +
-      '">' +
-      art("face_" + id, "person", name) +
-      "<figcaption><small>" +
-      where +
-      "</small><b>" +
-      name +
-      "</b></figcaption></figure>";
     const ticket = "订单 " + String(i + 1).padStart(2, "0") + " / 09";
     if (p === "letter") {
       body =
@@ -249,7 +235,8 @@ export class PlayScene extends BaseScene {
           )
         : "";
       body = this.counter(
-        o,
+        o.name,
+        guestSprite[o.portrait],
         "“" + o.line + "”",
         button("accept", "接下这单　→") +
           (i === 5 ? button("ask", "追问营里的事", "quiet") : "") +
@@ -351,7 +338,8 @@ export class PlayScene extends BaseScene {
         );
     } else if (p === "receipt") {
       body = this.counter(
-        o,
+        o.name,
+        guestSprite[o.portrait],
         '<span id="voice"></span>',
         button(
           "next",
@@ -363,51 +351,39 @@ export class PlayScene extends BaseScene {
         ),
       );
     } else if (p === "threat" || p === "reminder" || p === "final") {
-      const speaker = figure("constable", "陈捕头", "青溪县衙 · 来访");
+      const speaker = "陈捕头";
+      const sprite = "sprite_constable";
       if (p === "threat") {
-        const scene = story.threat[this.threatPage];
-        body =
-          speaker +
-          panel(
-            "第一日 · 黄昏",
-            scene[0],
-            scene[1],
-            button("threat", this.threatPage ? "记下期限　→" : "接过公文　→"),
-            this.threatPage
-              ? '<div class="newgoal"><s>获得师傅认可</s><strong>第三日黄昏前　筹银三十两</strong></div>'
-              : "",
-          );
-      } else if (p === "reminder")
-        body =
-          speaker +
-          panel(
-            "第二日 · 上午",
-            "门槛上的靴印",
-            story.reminder,
-            button("return", "等他走远，回到柜台　→"),
-          );
-      else
-        body =
-          speaker +
-          panel(
-            "第三日 · 黄昏",
-            "门外有人等账",
-            story.final,
-            choices(s)
-              .map((e) =>
-                button(
-                  e,
-                  actionNames[e],
-                  e === "expose" ? "secondary" : "primary",
-                ),
-              )
-              .join("") + button("search", "最后看看铺子", "quiet"),
-            group(
-              detail("手中银两", money(s.silver) + " / 30") +
-                detail("已取证物", s.clues.filter(Boolean).length + " / 3") +
-                detail("街坊口碑", s.rep + " / 60"),
-            ),
-          );
+        const [, line] = story.threat[this.threatPage];
+        body = this.counter(
+          speaker,
+          sprite,
+          line,
+          button("threat", this.threatPage ? "记下期限　→" : "接过公文　→"),
+        );
+      } else if (p === "reminder") {
+        body = this.counter(
+          speaker,
+          sprite,
+          story.reminder,
+          button("return", "等他走远，回到柜台　→"),
+        );
+      } else {
+        body = this.counter(
+          speaker,
+          sprite,
+          story.final,
+          choices(s)
+            .map((ending) =>
+              button(
+                ending,
+                actionNames[ending],
+                ending === "expose" ? "secondary" : "primary",
+              ),
+            )
+            .join("") + button("search", "最后看看铺子", "quiet"),
+        );
+      }
     } else if (p === "night") {
       const first = s.completed === 3;
       body =
