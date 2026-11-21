@@ -1,3 +1,4 @@
+import Phaser from "phaser";
 import { BaseScene } from "../engine/scenes";
 import { orders, evidence } from "../core/orders";
 import {
@@ -587,7 +588,6 @@ export class PlayScene extends BaseScene {
       return;
     }
     if (a === "heat" && p === "heat" && !this.heating) {
-      this.playWorkshopSound("heat");
       this.heating = true;
       this.draw();
       const duration = matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -598,6 +598,7 @@ export class PlayScene extends BaseScene {
         this.started = performance.now();
         this.goto("strike");
       });
+      this.playWorkshopSound("heat");
       return;
     }
     if (a === "strike" && p === "strike") {
@@ -624,9 +625,9 @@ export class PlayScene extends BaseScene {
       return;
     }
     if (a === "quench" && p === "quench") {
-      this.playWorkshopSound("quench");
       this.goto("inspect");
       this.fx("quench", "fx_steam");
+      this.playWorkshopSound("quench");
       return;
     }
     if (a === "deliver" && p === "inspect") {
