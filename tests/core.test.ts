@@ -8,13 +8,59 @@ import {
   choices,
   finish,
   forgeTarget,
+  recordTestimony,
   reforge,
   tuning,
 } from "../src/core/game";
 import { visits, previousVisit, receipt, visitRecord } from "../src/core/visits";
 import { createSave } from "../src/engine/save";
+import { recordSideStory } from "../src/core/side-stories";
 
 describe("三日账本", () => {
+  it("按作为和约定兑现两条支线结局", () => {
+    const s = newGame();
+    s.records = Array.from({ length: 9 }, () => ({ grade: "合格", money: 30, rep: 2 }));
+    s.rep = 60;
+    s.silver = 100;
+    s.phase = "order";
+    for (const [index, choice] of [[1, 0], [2, 0], [3, 1], [5, 1], [7, 1], [8, 0]] as const)
+      visitRecord(s, index).choice = choice;
+    for (const index of [4, 5, 6, 7, 8]) {
+      s.completed = index;
+      expect(recordSideStory(s)).toBeDefined();
+    }
+    s.completed = 9;
+    s.phase = "final";
+    expect(choices(s)).toEqual(["guarantee"]);
+    s.clues[2] = true;
+    expect(choices(s)).toEqual(["guarantee", "appeal"]);
+    s.records[5].grade = "瑕疵";
+    expect(choices(s)).toEqual(["guarantee"]);
+    finish(s, "guarantee");
+    expect([s.ending, s.silver, s.paid]).toEqual(["guarantee", 0, 100]);
+  });
+  it("来客证词可补一件物证，并保留收据和口碑门槛", () => {
+    const s = newGame();
+    s.phase = "order";
+    s.completed = 4;
+    recordTestimony(s);
+    recordTestimony(s);
+    expect(s.testimony).toEqual([0]);
+    s.rep = 60;
+    s.clues = [true, false, true];
+    expect(choices(s)).toEqual(["arrest"]);
+    s.completed = 6;
+    recordTestimony(s);
+    s.phase = "final";
+    expect(choices(s)).toEqual(["expose"]);
+    s.rep = 59;
+    expect(choices(s)).toEqual(["arrest"]);
+    s.rep = 60;
+    s.clues = [true, true, false];
+    expect(choices(s)).toEqual(["arrest"]);
+    s.clues = [false, false, true];
+    expect(choices(s)).toEqual(["arrest"]);
+  });
   it.each([
     [2, 450, 77],
     [1, 360, 68],

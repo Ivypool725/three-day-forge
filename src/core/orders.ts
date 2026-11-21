@@ -90,6 +90,21 @@ export const orders = [
     use: "商旅启程前取货",
   },
 ] as const;
+export const witnessStatements = [
+  {
+    order: 4,
+    name: "小荷的证词",
+    prompt: "追问老周临走前的事",
+    line: "老周临走特意结清了赊下的面钱，连缺角那根木签也带来了。他没提过闪腰或寻医。这些我亲眼见过，当面问我，我也这么说。",
+  },
+  {
+    order: 6,
+    name: "猎户的证词",
+    prompt: "追问渡口的见闻",
+    line: "那晚我亲眼见有人提着沉包上船，跳板都压下去一截。天太暗，脸和包里的东西我没看清。真要我作证，我只说看见的这些。",
+  },
+] as const;
+
 export const evidence = [
   {
     name: "被涂改的账本",

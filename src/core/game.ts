@@ -1,5 +1,6 @@
 import { CONFIG, type Config } from "../config";
-import { orders } from "./orders";
+import { orders, witnessStatements } from "./orders";
+import { hasSupport, type SideStoryId } from "./side-stories";
 
 import type { Exchange, VisitRecord } from "./visits";
 
@@ -17,7 +18,7 @@ export type Phase =
   | "reminder"
   | "final"
   | "end";
-export type Ending = "pay" | "expose" | "arrest";
+export type Ending = "pay" | "expose" | "arrest" | "guarantee" | "appeal";
 export interface GameState {
   visits?: Record<number, VisitRecord>;
   // 第一版小荷问单的存档字段，在首次读到这一单时迁移。
@@ -35,6 +36,8 @@ export interface GameState {
   streak: number;
   best: number;
   clues: boolean[];
+  testimony?: number[];
+  sideStories?: SideStoryId[];
   chest: boolean;
   ending: Ending | "leave" | null;
   threatSeen: boolean;
@@ -157,17 +160,32 @@ export function available(s: GameState, id: number) {
 export function collect(s: GameState, id: number) {
   if (available(s, id) && s.phase !== "end") s.clues[id] = true;
 }
+export function recordTestimony(s: GameState) {
+  const index = witnessStatements.findIndex((entry) => entry.order === s.completed);
+  if (s.phase !== "order" || index < 0) return;
+  const recorded = s.testimony ??= [];
+  if (!recorded.includes(index)) recorded.push(index);
+}
+
+export function hasWitnessCase(s: GameState) {
+  return Boolean(s.clues[2] && (s.clues[0] || s.clues[1]) &&
+    witnessStatements.every((_, index) => s.testimony?.includes(index)));
+}
+
 export function choices(s: GameState): Ending[] {
   const list: Ending[] = [];
   if (s.silver >= CONFIG.game.demand) list.push("pay");
-  if (s.rep >= CONFIG.game.witnessRep && s.clues.every(Boolean))
+  if (s.rep >= CONFIG.game.witnessRep && (s.clues.every(Boolean) || hasWitnessCase(s)))
     list.push("expose");
+  if (s.rep >= CONFIG.game.witnessRep && s.silver >= CONFIG.game.guaranteeDeposit &&
+      hasSupport(s, "farmer", "cook")) list.push("guarantee");
+  if (s.clues[2] && hasSupport(s, "hunter", "guard", "traveler")) list.push("appeal");
   return list.length ? list : ["arrest"];
 }
 export function finish(s: GameState, e: Ending) {
   if (s.phase !== "final" || !choices(s).includes(e)) return;
-  if (e === "pay") {
-    s.paid = CONFIG.game.demand;
+  if (e === "pay" || e === "guarantee") {
+    s.paid = e === "pay" ? CONFIG.game.demand : CONFIG.game.guaranteeDeposit;
     s.silver -= s.paid;
   }
   s.ending = e;

@@ -10,7 +10,7 @@ const [url = "http://127.0.0.1:5287", route = "expose", mode = "desktop"] =
 const movie = mode === "film",
   mobile = mode === "mobile",
   rough = route === "arrest";
-const actual = route === "late" ? "expose" : route;
+const actual = route === "late" || route === "witness" ? "expose" : route;
 const dir = await mkdtemp(path.join(os.tmpdir(), "qingxi-play-"));
 const b = await chromium.launch({
   channel: "chrome",
@@ -126,6 +126,15 @@ try {
   for (let i = 0; i < 9; i++) {
     assert.equal(await p.locator(".dialogue-cast[data-speaker]").count(), 0);
     await choose("arrive");
+    const sideOrders = route === "guarantee" ? [4, 7] : route === "appeal" ? [5, 6, 8] : [];
+    if (sideOrders.includes(i)) {
+      await choose("side-story");
+      await choose("close");
+    }
+    if (route === "witness" && (i === 4 || i === 6)) {
+      await choose("testimony");
+      await choose("close");
+    }
     assert.equal(await p.locator(".dialogue-cast").getAttribute("data-speaker"), "guest");
     if ((route === "expose" || route === "arrest") && i === 5) {
       await choose("ask");
@@ -133,7 +142,7 @@ try {
       await pause(1600);
       await choose("close");
     }
-    if ((route === "expose" || route === "arrest") && i === 7) {
+    if ((route === "expose" || route === "arrest" || route === "witness" || route === "appeal") && i === 7) {
       await choose("search");
       await choose("clue2");
       await snap("receipt-proof");
@@ -151,7 +160,7 @@ try {
       }
     }
     await choose("commission");
-    await choose("commission-" + (i % 2));
+    await choose("commission-" + (route === "guarantee" && i === 1 ? 0 : i % 2));
     await pause(i === 0 ? 950 : 220);
     await choose("heat");
     if (i === 0) {
@@ -176,7 +185,7 @@ try {
       await snap("ultimatum");
       await pause(2600);
       await choose("threat");
-      if (route === "expose" || route === "arrest") {
+      if (route === "expose" || route === "arrest" || route === "witness") {
         await choose("search");
         await choose("clue0");
         await pause(1750);
@@ -190,7 +199,7 @@ try {
       await choose("return");
     }
     if (i === 5) {
-      if (route === "expose" || route === "leave" || route === "arrest") {
+      if (route === "expose" || route === "leave" || route === "arrest" || route === "witness" || route === "appeal") {
         await choose("search");
         await choose("chest");
         await pause(1300);
@@ -222,10 +231,13 @@ try {
     assert.equal(s.rep, rough ? 23 : 77);
     assert.deepEqual(
       s.clues,
+      route === "witness" ? [true, false, true] :
+      route === "appeal" ? [false, false, true] :
       actual === "expose" || route === "arrest"
         ? [true, true, true]
         : [false, false, false],
     );
+    if (route === "witness") assert.deepEqual(s.testimony, [0, 1]);
     if (route === "expose") await p.locator("[data-act=pay]").waitFor();
     await snap("final");
     await pause(1900);
@@ -233,7 +245,7 @@ try {
   }
   const s = await read();
   assert.equal(s.ending, actual);
-  assert.equal(s.paid, route === "pay" ? 300 : 0);
+  assert.equal(s.paid, route === "pay" ? 300 : route === "guarantee" ? 100 : 0);
   await snap("ending");
   await pause(3500);
   if (movie) {

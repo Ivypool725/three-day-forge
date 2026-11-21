@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { BaseScene } from "../engine/scenes";
-import { orders, evidence } from "../core/orders";
+import { orders, evidence, witnessStatements } from "../core/orders";
+import { availableSideStory, recordSideStory, sideStories } from "../core/side-stories";
 import {
   advanceReceipt,
   appraisal,
@@ -10,6 +11,7 @@ import {
   deliver,
   finish,
   hit,
+  recordTestimony,
   money,
   newGame,
   orderIndex,
@@ -31,6 +33,8 @@ const actionNames: Record<Ending, string> = {
   pay: "交出三十两",
   expose: "当众拿出证据",
   arrest: "让官差进门",
+  guarantee: "请街坊联保，交十两押银",
+  appeal: "按约去府城递证",
 };
 const detail = (key: string, val: string) =>
   "<div><dt>" + key + "</dt><dd>" + val + "</dd></div>";
@@ -258,11 +262,18 @@ export class PlayScene extends BaseScene {
           button("clue1", "接过甲片，看清戳印") + button("back-to-order", "回到订单", "quiet"),
         );
       } else {
+        const witness = witnessStatements.findIndex((entry) => entry.order === i);
+        const sideStory = availableSideStory(s);
         body = counterScene(
           o,
           "“" + o.line + "”",
           button("commission", "接下这单", "primary") +
-            (i === 5 ? button("ask", "追问营里的事", "quiet") : "") + catchup,
+            (i === 5 ? button("ask", "追问营里的事", "quiet") : "") +
+            (witness >= 0 ? button("testimony", s.testimony?.includes(witness)
+              ? "重读证词" : witnessStatements[witness].prompt, "quiet") : "") +
+            (sideStory ? button("side-story", s.sideStories?.includes(sideStory.id)
+              ? "重读约定" : sideStory.prompt, "quiet") : "") +
+            catchup,
         );
       }
     } else if (p === "receipt") {
@@ -312,6 +323,7 @@ export class PlayScene extends BaseScene {
             group(
               detail("手中银两", money(s.silver) + " / 30") +
                 detail("已取证物", s.clues.filter(Boolean).length + " / 3") +
+                detail("已录证词", (s.testimony?.length ?? 0) + " / " + witnessStatements.length) +
                 detail("街坊口碑", s.rep + " / 60"),
             ),
           );
@@ -338,12 +350,14 @@ export class PlayScene extends BaseScene {
         );
     } else if (p === "end") {
       const ending = story.endings[s.ending!];
+      const endingLine = s.ending === "expose" && !s.clues.every(Boolean)
+        ? story.witnessEnding : ending[1];
       body =
         caption(ending[0], "青溪县志 · 卷末") +
         panel(
           "终章　 /　经营结算",
           ending[0],
-          ending[1] + "<br><em>" + ending[2] + "</em>",
+          endingLine + "<br><em>" + ending[2] + "</em>",
           button("restart", "再开一次炉　↺") +
             button("cover", "回到封面", "quiet"),
           group(
@@ -452,7 +466,18 @@ export class PlayScene extends BaseScene {
                   .join("")
               : "<p>还没有收下证物。</p>")
           : "") +
-        ledger + '<section class="visit-notes" aria-label="柜台往来"></section>',
+        (s.sideStories?.length
+          ? "<h3>与来客的约定</h3>" + sideStories
+              .filter((entry) => s.sideStories?.includes(entry.id))
+              .map((entry) => "<p><b>" + entry.title + "</b><br>" + entry.line + "</p>")
+              .join("")
+          : "") +
+        (s.testimony?.length
+          ? "<h3>来客证词</h3>" + witnessStatements
+              .filter((_, index) => s.testimony?.includes(index))
+              .map((entry) => "<p><b>" + entry.name + "</b><br>" + entry.line + "</p>")
+              .join("")
+          : "") + ledger + '<section class="visit-notes" aria-label="柜台往来"></section>',
     );
     const notes = dialog.querySelector(".visit-notes")!;
     for (let i = 0; i <= Math.min(s.completed, orders.length - 1); i++) {
@@ -505,6 +530,31 @@ export class PlayScene extends BaseScene {
   private act(a: string) {
     const s = this.run,
       p = s.phase;
+    if (a === "side-story" && p === "order" && !this.pendingVisit()) {
+      const sideStory = recordSideStory(s);
+      if (sideStory) {
+        this.store();
+        const control = ui.querySelector('[data-act="side-story"]');
+        if (control) control.textContent = "重读约定";
+        const requirement = "pledge" in sideStory
+          ? "<p>完成约定：选「" + visits[sideStory.pledge.order].options[sideStory.pledge.choice].label +
+            "」，交付至少合格的成品。</p>"
+          : "";
+        popup(sideStory.title, "<p>“" + sideStory.line + "”</p>" + requirement);
+      }
+      return;
+    }
+    if (a === "testimony" && p === "order" && !this.pendingVisit()) {
+      const witness = witnessStatements.find((entry) => entry.order === s.completed);
+      if (witness) {
+        recordTestimony(s);
+        this.store();
+        const control = ui.querySelector('[data-act="testimony"]');
+        if (control) control.textContent = "重读证词";
+        popup(witness.name, "<p>“" + witness.line + "”</p><p>证词已记入手记。</p>");
+      }
+      return;
+    }
     if (a === "arrive") {
       const visit = this.pendingVisit();
       if (visit) {
@@ -722,7 +772,7 @@ export class PlayScene extends BaseScene {
       this.goto("order");
       return;
     }
-    if (p === "final" && ["pay", "arrest", "expose"].includes(a)) {
+    if (p === "final" && Object.hasOwn(actionNames, a)) {
       finish(s, a as Ending);
       this.store();
       this.draw();
