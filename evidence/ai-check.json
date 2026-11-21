@@ -1,0 +1,20 @@
+{
+  "realLocalHttp": {
+    "status": 200,
+    "reply": {
+      "source": "local"
+    }
+  },
+  "browserStub": {
+    "label": "浏览器拦截请求的模拟回复，本轮未连课程模型",
+    "request": {
+      "index": 0,
+      "grade": "合格"
+    },
+    "display": "“够顺手，明早这垄地有着落了。”",
+    "sourceLabel": "顾客回应 · AI 即兴",
+    "ordersSettled": 1
+  },
+  "savedStrikeRestored": true,
+  "pageErrors": []
+}

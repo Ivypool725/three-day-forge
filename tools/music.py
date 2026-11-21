@@ -37,3 +37,13 @@ for offset in (0,.30,.65):
         t=i/rate
         knocks[int(offset*rate)+i]=math.exp(-27*t)*(.55*math.sin(2*math.pi*98*t)+.32*math.sin(2*math.pi*191*t)+.12*rng.uniform(-1,1))
 encode(knocks,'assets/sounds/knock.mp3')
+
+# 同一旋律降调、放慢、削去明亮高频，作为第二日的变奏。
+subprocess.run(['ffmpeg','-loglevel','error','-y','-i','assets/sounds/bgm_main.mp3',
+                '-af','asetrate=32000,aresample=44100,atempo=0.84,lowpass=f=1250',
+                'assets/sounds/bgm_dusk.mp3'],check=True)
+# 第三日只剩炉火。固定噪声种子可重复生成同一片声景。
+subprocess.run(['ffmpeg','-loglevel','error','-y','-f','lavfi','-i',
+                'anoisesrc=color=brown:amplitude=0.3:duration=12:seed=30','-af',
+                'lowpass=f=650,afade=t=in:d=0.4,afade=t=out:st=11.4:d=0.6',
+                'assets/sounds/bgm_embers.mp3'],check=True)
