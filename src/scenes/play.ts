@@ -13,6 +13,7 @@ import {
   money,
   newGame,
   orderIndex,
+  reforge,
   tuning,
   type Ending,
   type Phase,
@@ -201,7 +202,7 @@ export class PlayScene extends BaseScene {
       identity() +
       '<div class="hud"><span>第' +
       nums[day] +
-      "日</span><span>银两 <b>" +
+      '日</span><span>银两 <b data-stat="silver">' +
       money(s.silver) +
       "</b></span><span>口碑 <b>" +
       s.rep +
@@ -222,6 +223,8 @@ export class PlayScene extends BaseScene {
       updateWorkshop(this.workshop, s, p, i, this.heating, this.note);
       this.clock = p === "strike" ? this.workshop.querySelector("#needle") : null;
       if (this.clock) this.update();
+      ui.querySelector('[data-stat="silver"]')!.textContent = money(s.silver);
+      ui.querySelector("footer")!.textContent = goal;
       return;
     }
 
@@ -373,7 +376,8 @@ export class PlayScene extends BaseScene {
           button("restart", "再开一次炉　↺") +
             button("cover", "回到封面", "quiet"),
           group(
-            detail("总收入", money(s.silver + s.paid) + " 两") +
+            detail("总收入", money(s.silver + s.paid + (s.reforgeSpent ?? 0)) + " 两") +
+              (s.reforgeSpent ? detail("返工耗银", money(s.reforgeSpent) + " 两") : "") +
               detail("实际支付", money(s.paid) + " 两") +
               detail("交付", s.completed + " / 9") +
               detail("连中", s.best + " 锤") +
@@ -658,6 +662,13 @@ export class PlayScene extends BaseScene {
       ][v];
       this.sfx(["sfx_miss", "sfx_hammer_light", "sfx_hammer_heavy"][v]);
       this.fx("strike", v === 0 ? "fx_crack" : "fx_spark");
+      this.store();
+      this.draw();
+      return;
+    }
+    if (a === "reforge" && p === "broken") {
+      reforge(s);
+      this.note = "";
       this.store();
       this.draw();
       return;

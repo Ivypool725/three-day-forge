@@ -6,6 +6,7 @@ export type Phase =
   | "order"
   | "heat"
   | "strike"
+  | "broken"
   | "quench"
   | "inspect"
   | "receipt"
@@ -24,6 +25,7 @@ export interface GameState {
   paid: number;
   hits: number[];
   forgeSeed?: number;
+  reforgeSpent?: number;
   streak: number;
   best: number;
   clues: boolean[];
@@ -64,7 +66,7 @@ export function tuning(index: number) {
   return {
     green,
     yellow: green + forge.yellowMargin,
-    period: 1500 - day * 180 + (index === 0 ? 220 : 0),
+    period: forge.sweepPeriod - day * forge.dayPeriodStep + (index === 0 ? forge.tutorialExtraPeriod : 0),
   };
 }
 export function forgeTarget(s: GameState) {
@@ -89,8 +91,20 @@ export function hit(s: GameState, position: number) {
   s.hits.push(value);
   s.streak = value === 2 ? s.streak + 1 : 0;
   s.best = Math.max(s.best, s.streak);
-  if (s.hits.length === 3) s.phase = "quench";
+  if (s.hits.length === 3)
+    s.phase = s.hits.every((score) => score === 0) ? "broken" : "quench";
   return value;
+}
+export function reforgeCost(s: GameState) {
+  return Math.min(s.silver, CONFIG.forge.reforgeCost);
+}
+export function reforge(s: GameState) {
+  if (s.phase !== "broken") return;
+  const cost = reforgeCost(s);
+  s.silver -= cost;
+  s.reforgeSpent = (s.reforgeSpent ?? 0) + cost;
+  s.hits = [];
+  s.phase = "heat";
 }
 export function appraisal(hits: number[], index: number) {
   const points = hits.reduce((a, b) => a + b, 0);

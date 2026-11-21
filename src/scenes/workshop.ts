@@ -1,11 +1,12 @@
-import { appraisal, forgeTarget, money, type GameState, type Phase } from "../core/game";
+import { appraisal, forgeTarget, money, reforgeCost, type GameState, type Phase } from "../core/game";
 import { orders } from "../core/orders";
-import { art } from "./shared";
+import { art, button } from "./shared";
 import "./workshop.css";
 
 const steps = {
   heat: { action: "heat", hint: "点炉膛，把铁坯烧红。" },
   strike: { action: "strike", hint: "指针进绿区时点铁砧，或按空格。" },
+  broken: { action: "reforge", hint: "三锤全偏，铁坯碎了。" },
   quench: { action: "quench", hint: "铁坯已打好，点水槽淬火。" },
   inspect: { action: "deliver", hint: "成品已出炉，递给柜台的顾客。" },
 } as const;
@@ -41,6 +42,7 @@ export function workshopMarkup(index: number) {
         <div class="workshop-piece" aria-hidden="true">
           ${art("station_hot_ingot", "workshop-ingot")}
           ${art("item_" + o.icon, "workshop-finished")}
+          ${art("item_scrap", "workshop-scrap")}
         </div>
         <div class="workshop-timing" hidden>
           <div class="meter" aria-hidden="true">
@@ -59,6 +61,7 @@ export function workshopMarkup(index: number) {
           <div><h1>${o.item}</h1><p>${o.name} · 最高 ${o.max} 两</p></div>
         </div>
         <p class="work-order-hint" role="status"></p>
+        ${button("reforge", "换料重锻")}
         <strong class="work-order-result" hidden></strong>
       </aside>
     </section>`;
@@ -86,6 +89,12 @@ export function updateWorkshop(
   const hint = heating ? "铁坯正在炉里烧红……" : step.hint;
   const hintNode = root.querySelector(".work-order-hint")!;
   if (hintNode.textContent !== hint) hintNode.textContent = hint;
+  const retry = root.querySelector<HTMLButtonElement>('[data-act="reforge"]')!;
+  retry.hidden = phase !== "broken";
+  if (phase === "broken") {
+    const cost = reforgeCost(state);
+    retry.textContent = cost > 0 ? `换料重锻 · 扣 ${money(cost)} 两` : "免费换料重锻";
+  }
   root.querySelector<HTMLElement>(".workshop-timing")!.hidden = phase !== "strike";
   if (phase === "strike") {
     const { center, green, yellow } = forgeTarget(state);

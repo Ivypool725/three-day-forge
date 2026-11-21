@@ -192,12 +192,21 @@
   filter: drop-shadow(0 5px 7px #181c17e6);
 }
 
+.workshop-scrap {
+  opacity: 0;
+}
+
+.workshop[data-phase="broken"] .workshop-scrap {
+  opacity: 1;
+  transform: rotate(-14deg);
+}
+
 .workshop[data-heating] .workshop-piece {
   --piece-x: var(--furnace-x);
   --piece-y: var(--furnace-y);
 }
 
-.workshop[data-phase="strike"] .workshop-piece {
+.workshop:is([data-phase="strike"], [data-phase="broken"]) .workshop-piece {
   --piece-x: var(--anvil-x);
   --piece-y: calc(var(--anvil-y) - 4%);
   --piece-scale: 1.28;
@@ -208,7 +217,7 @@
   --piece-y: calc(var(--water-y) - 3%);
 }
 
-.workshop[data-phase="inspect"] .workshop-ingot {
+.workshop:is([data-phase="broken"], [data-phase="inspect"]) .workshop-ingot {
   opacity: 0;
 }
 
@@ -309,6 +318,13 @@
   margin-top: 7px;
   color: #ffe1a4;
   font-size: clamp(17px, 1.5cqw, 26px);
+}
+
+.work-order [data-act="reforge"] {
+  margin-top: 6px;
+  background: #edc485;
+  color: #392719;
+  font-size: clamp(16px, 1.4cqw, 24px);
 }
 
 .work-station .flare {

@@ -8,6 +8,7 @@ import {
   choices,
   finish,
   forgeTarget,
+  reforge,
   tuning,
 } from "../src/core/game";
 import { createSave } from "../src/engine/save";
@@ -17,15 +18,16 @@ describe("三日账本", () => {
     [2, 450, 77],
     [1, 360, 68],
     [0, 225, 23],
-  ])("按每锤 %s 分验算九单", (points, earned, rep) => {
+  ])("按锻造成色验算九单（目标分 %s）", (points, earned, rep) => {
     const s = newGame();
     for (let i = 0; i < 9; i++) {
       s.phase = "strike";
       s.hits = [];
       for (let j = 0; j < 3; j++) {
         const { center, green, yellow } = forgeTarget(s);
-        const pos = points === 2 ? center : points === 1 ? center + (green + yellow) / 2 : 0;
-        expect(hit(s, pos)).toBe(points);
+        const score = points === 0 && j === 0 ? 1 : points;
+        const pos = score === 2 ? center : score === 1 ? center + (green + yellow) / 2 : 0;
+        expect(hit(s, pos)).toBe(score);
       }
       expect(s.phase).toBe("quench");
       expect(hit(s, 0.5)).toBeUndefined();
@@ -37,6 +39,24 @@ describe("三日账本", () => {
     }
     expect([s.silver, s.rep, s.phase]).toEqual([earned, rep, "final"]);
     if (points === 2) expect(s.best).toBe(27);
+  });
+  it.each([[30, 5], [3, 3], [0, 0]])("三锤全红后返工扣料钱（余额 %s）", (silver, cost) => {
+    const s = newGame();
+    s.silver = silver;
+    s.phase = "strike";
+    hit(s, 0);
+    hit(s, 0);
+    hit(s, 0);
+    expect(s.phase).toBe("broken");
+    deliver(s);
+    expect([s.completed, s.silver, s.rep]).toEqual([0, silver, 50]);
+    reforge(s);
+    reforge(s);
+    expect(s.phase).toBe("heat");
+    expect(s.hits).toEqual([]);
+    expect([s.completed, s.silver, s.reforgeSpent, s.rep]).toEqual([0, silver - cost, cost, 50]);
+    s.phase = "strike";
+    expect(hit(s, forgeTarget(s).center)).toBe(2);
   });
   it("高难度窗口更窄，落点换边且每局位置不同", () => {
     expect(tuning(2).green).toBeLessThan(tuning(1).green);

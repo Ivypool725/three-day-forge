@@ -75,7 +75,10 @@ async function threeHits(index) {
         const target = parseFloat(meter.getPropertyValue("--target")) / 100;
         const margin = parseFloat(meter.getPropertyValue("--green")) / 400;
         const farEdge = target < 0.5 ? pos >= 0.95 : pos <= 0.05;
-        if (rough ? !farEdge : Math.abs(pos - target) > margin) return false;
+        const yellow = parseFloat(meter.getPropertyValue("--yellow")) / 200;
+        const yellowCenter = target + margin + yellow / 2;
+        const desired = rough && j === 0 ? yellowCenter : target;
+        if (rough && j > 0 ? !farEdge : Math.abs(pos - desired) > margin / 2) return false;
         button.click();
         return globalThis.__game.game.hits.length === j + 1;
       },
@@ -237,7 +240,7 @@ try {
       route,
       mode,
       silver: s.silver,
-      total: s.silver + s.paid,
+      total: s.silver + s.paid + (s.reforgeSpent ?? 0),
       rep: s.rep,
       completed: s.completed,
       best: s.best,
