@@ -123,7 +123,11 @@ try {
   await choose("open");
   assert.equal((await read()).silver, 0);
   for (let i = 0; i < 9; i++) {
+    assert.equal(await p.locator(".dialogue-cast[data-speaker]").count(), 0);
+    await choose("arrive");
+    assert.equal(await p.locator(".dialogue-cast").getAttribute("data-speaker"), "guest");
     await choose("talk");
+    assert.equal(await p.locator(".dialogue-cast").getAttribute("data-speaker"), "apprentice");
     if ((route === "expose" || route === "arrest") && i === 5) {
       await choose("ask");
       await choose("clue1");
@@ -158,6 +162,8 @@ try {
     await choose("next");
     if (i === 2) {
       await pause(1400);
+      await choose("arrive");
+      await choose("threat");
       await choose("threat");
       await snap("ultimatum");
       await pause(2600);
@@ -172,6 +178,7 @@ try {
     }
     if (i === 3) {
       await pause(1100);
+      await choose("arrive");
       await choose("return");
     }
     if (i === 5) {
@@ -190,6 +197,7 @@ try {
     }
   }
   if (route !== "leave") {
+    await choose("arrive");
     if (route === "late") {
       await choose("search");
       await choose("clue0");

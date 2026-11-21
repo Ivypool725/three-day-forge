@@ -1,4 +1,3 @@
-import Phaser from "phaser";
 import { BaseScene } from "../engine/scenes";
 import { orders, evidence } from "../core/orders";
 import {
@@ -21,14 +20,9 @@ import {
 import story from "../core/story.json";
 import { art, button, dialog, identity, panel, popup, ui } from "./shared";
 import { isWorkshopPhase, updateWorkshop, workshopMarkup } from "./workshop";
+import { arrivalScene, dialogueScene } from "./dialogue";
 
-const guestSprite = {
-  woodcutter: "sprite_farmer",
-  heroine: "sprite_cook",
-  merchant: "sprite_hunter",
-  guard: "sprite_guard",
-  scholar: "sprite_traveler",
-};
+const constable = { portrait: "constable", name: "陈捕头" };
 const nums = ["一", "二", "三"];
 const actionNames: Record<Ending, string> = {
   pay: "交出三十两",
@@ -56,17 +50,9 @@ export class PlayScene extends BaseScene {
   private until = 0;
   private muted = false;
   private request?: AbortController;
-  private shopOrder = -1;
-  private shopX = 0;
-  private shopHero: HTMLElement | null = null;
-  private walkingToGuest = false;
-  private talking = false;
-  private walkKeys?: {
-    left: Phaser.Input.Keyboard.Key;
-    right: Phaser.Input.Keyboard.Key;
-    a: Phaser.Input.Keyboard.Key;
-    d: Phaser.Input.Keyboard.Key;
-  };
+  private answeredOrder = -1;
+  private enteredVisit = "";
+  private questioning = false;
   constructor() {
     super("play");
   }
@@ -82,15 +68,9 @@ export class PlayScene extends BaseScene {
     this.workshop = null;
     this.heating = false;
     this.until = 0;
-    this.shopOrder = -1;
-    this.shopHero = null;
-    const keyboard = this.input.keyboard;
-    this.walkKeys = keyboard ? {
-      left: keyboard.addKey("LEFT", false),
-      right: keyboard.addKey("RIGHT", false),
-      a: keyboard.addKey("A", false),
-      d: keyboard.addKey("D", false),
-    } : undefined;
+    this.answeredOrder = -1;
+    this.enteredVisit = "";
+    this.questioning = false;
     const click = (e: Event) => {
       const target = (e.target as HTMLElement).closest<HTMLButtonElement>(
         "button[data-act]",
@@ -99,10 +79,6 @@ export class PlayScene extends BaseScene {
     };
     this.onKey((e) => {
       if (dialog.open) return;
-      if (e.code === "KeyE" && this.run.phase === "order" && !this.talking) {
-        this.act("talk");
-        return;
-      }
       if (e.code !== "Space") return;
       const focused = document.activeElement;
       if (this.run.phase === "strike") {
@@ -115,7 +91,7 @@ export class PlayScene extends BaseScene {
         ui.querySelector<HTMLButtonElement>(
           this.workshop
             ? ".workshop [aria-current=step]"
-            : ".sheet .primary, .shop-dialogue .primary",
+            : ".sheet .primary, .dialogue-box .primary",
         )?.click();
       }
     });
@@ -125,7 +101,6 @@ export class PlayScene extends BaseScene {
       this.request?.abort();
       ui.removeEventListener("click", click);
       dialog.removeEventListener("click", click);
-      this.shopHero = null;
       if (dialog.open) dialog.close();
     });
     this.draw();
@@ -185,31 +160,12 @@ export class PlayScene extends BaseScene {
     sound.once(Phaser.Sound.Events.COMPLETE, cleanup);
     this.events.once("shutdown", cleanup);
   }
-  private counter(
-    order: (typeof orders)[number],
-    line: string,
-    actions: string,
-  ) {
-    const { guest, talkDistance } = this.ctx.config.shop;
-    const isOrder = this.run.phase === "order";
-    const waiting = isOrder && !this.talking;
-    const heroX = isOrder ? this.shopX : guest - talkDistance;
-    const visitor = art(
-      guestSprite[order.portrait],
-      "shop-sprite",
-      waiting ? "与" + order.name + "交谈" : order.name,
-    );
-    return `<div class="shop-floor" style="--guest-x:${guest}%">
-      <div class="shop-actor shop-hero" style="--actor-x:${heroX}%">
-        ${art("sprite_apprentice", "shop-sprite", "学徒")}
-      </div>
-      ${waiting ? button("talk", visitor, "shop-actor shop-guest") : `<div class="shop-actor shop-guest">${visitor}</div>`}
-    </div>
-    <section class="shop-dialogue" aria-label="${waiting ? "操作提示" : "与" + order.name + "交谈"}">
-      <h2 class="shop-speaker">${waiting ? "有客上门" : order.name}</h2>
-      <p class="shop-line" aria-live="polite">${waiting ? "点顾客上前，或用 ← / → 移动学徒。" : line}</p>
-      <div class="actions">${waiting ? button("talk", "上前交谈") : actions}</div>
-    </section>`;
+  private pendingVisit() {
+    const { phase, completed } = this.run;
+    let visit = "";
+    if (phase === "order") visit = `order-${completed}`;
+    else if (phase === "threat" || phase === "reminder" || phase === "final") visit = phase;
+    return visit === this.enteredVisit ? "" : visit;
   }
   private draw() {
     const s = this.run,
@@ -217,13 +173,7 @@ export class PlayScene extends BaseScene {
       o = orders[i],
       p = s.phase,
       day = this.day();
-    const shop = p === "order" || p === "receipt";
-    if (p === "order" && this.shopOrder !== i) {
-      this.shopOrder = i;
-      this.shopX = this.ctx.config.shop.start;
-      this.walkingToGuest = false;
-      this.talking = false;
-    }
+    const conversation = p === "order" || p === "receipt" || p === "threat" || p === "reminder" || p === "final";
     const { width, height } = this.ctx.config.view;
     const goal = s.threatSeen
       ? "第三日黄昏前筹银　" + money(s.silver) + " / 30 两"
@@ -249,7 +199,6 @@ export class PlayScene extends BaseScene {
         ui.className = "play day" + day;
         ui.innerHTML = hdr + workshopMarkup(i) + "<footer>" + goal + "</footer>";
         this.workshop = ui.querySelector(".workshop")!;
-        this.shopHero = null;
       }
       updateWorkshop(this.workshop, s, p, i, this.heating, this.note);
       this.clock = p === "strike" ? this.workshop.querySelector("#needle") : null;
@@ -263,35 +212,22 @@ export class PlayScene extends BaseScene {
     this.workshop = null;
     this.clock = null;
     const night = ["threat", "reminder", "final"].includes(p);
-    let bg = night || p === "night" ? "bg_courtyard" : "bg_dawn";
+    let bg = p === "night" ? "bg_courtyard" : "bg_dawn";
     if (p === "end") bg = s.ending === "expose" ? "bg_dawn" : "bg_courtyard";
-    if (shop) bg = "bg_shop_pixel";
     this.bg.setTexture(bg).setDisplaySize(width, height);
-    if (shop) this.bg.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
     this.soundscape();
     ui.className =
       "play day" +
       day +
-      (shop ? " shop-visit" : "") +
+      (conversation ? " conversation" : "") +
       (night ? " ominous" : "") +
       (p === "end" ? " ending" : "");
     let body = "";
-    const figure = (
-      id: string,
-      name: string,
-      where: string,
-      mood = "neutral",
-    ) =>
-      '<figure class="portrait ' +
-      mood +
-      '">' +
-      art("face_" + id, "person", name) +
-      "<figcaption><small>" +
-      where +
-      "</small><b>" +
-      name +
-      "</b></figcaption></figure>";
-    if (p === "letter") {
+    if (this.pendingVisit()) {
+      body = p === "order"
+        ? arrivalScene("有客上门", `${o.name}在柜台前等你。`, "上前交谈　→")
+        : arrivalScene("门外有动静", p === "threat" ? "门外传来三声叩响。" : "门外有人等你过去。", "上前看看　→");
+    } else if (p === "letter") {
       body =
         caption("青溪县", "大晟 · 景和二十三年") +
         panel(
@@ -309,16 +245,27 @@ export class PlayScene extends BaseScene {
             "quiet",
           )
         : "";
-      body = this.counter(
-        o,
-        "“" + o.line + "”",
-        button("accept", "接下这单　→") +
-          (i === 5 ? button("ask", "追问营里的事", "quiet") : "") +
-          catchup,
-      );
+      if (this.questioning) {
+        body = dialogueScene(
+          o, "guest",
+          "“少的是营里的甲。寻常铺子打一把刀不稀奇，私接这些可要坐牢。账上还写着东西在库里，可修甲用的部件已经不见了。我在你们铺子旁捡着一片，你自己看。”",
+          button("clue1", "接过甲片，看清戳印") + button("back-to-order", "回到订单", "quiet"),
+        );
+      } else if (this.answeredOrder === i) {
+        body = dialogueScene(
+          o, "apprentice",
+          `“${o.item}，我记下了。这就开炉。”`,
+          button("accept", "接下这单　→") +
+            (i === 5 ? button("ask", "追问营里的事", "quiet") : "") +
+            catchup,
+        );
+      } else {
+        body = dialogueScene(o, "guest", "“" + o.line + "”", button("talk", "回应　→") + catchup);
+      }
     } else if (p === "receipt") {
-      body = this.counter(
+      body = dialogueScene(
         o,
+        "guest",
         '<span id="voice"></span>',
         button(
           "next",
@@ -330,35 +277,25 @@ export class PlayScene extends BaseScene {
         ),
       );
     } else if (p === "threat" || p === "reminder" || p === "final") {
-      const speaker = figure("constable", "陈捕头", "青溪县衙 · 来访");
       if (p === "threat") {
-        const scene = story.threat[this.threatPage];
-        body =
-          speaker +
-          panel(
-            "第一日 · 黄昏",
-            scene[0],
-            scene[1],
-            button("threat", this.threatPage ? "记下期限　→" : "接过公文　→"),
-            this.threatPage
+        const isLast = this.threatPage === story.threat.length - 1;
+        body = dialogueScene(
+            constable, this.threatPage === 1 ? "apprentice" : "guest",
+            story.threat[this.threatPage],
+            button("threat", ["回应　→", "接过公文　→", "记下期限　→"][this.threatPage]),
+            isLast
               ? '<div class="newgoal"><s>获得师傅认可</s><strong>第三日黄昏前　筹银三十两</strong></div>'
               : "",
           );
       } else if (p === "reminder")
-        body =
-          speaker +
-          panel(
-            "第二日 · 上午",
-            "门槛上的靴印",
+        body = dialogueScene(
+            constable, "guest",
             story.reminder,
             button("return", "等他走远，回到柜台　→"),
           );
       else
-        body =
-          speaker +
-          panel(
-            "第三日 · 黄昏",
-            "门外有人等账",
+        body = dialogueScene(
+            constable, "guest",
             story.final,
             choices(s)
               .map((e) =>
@@ -428,35 +365,10 @@ export class PlayScene extends BaseScene {
           ? "城西 · 清晨"
           : goal) +
       "</footer>";
-    this.shopHero = ui.querySelector(".shop-hero");
     if (p === "receipt") void this.reply(i);
   }
-  private moveInShop(delta: number) {
-    const hero = this.shopHero;
-    if (!hero || this.talking || this.run.phase !== "order") return;
-    const keys = this.walkKeys;
-    const left = Boolean(keys?.left.isDown || keys?.a.isDown);
-    const right = Boolean(keys?.right.isDown || keys?.d.isDown);
-    const direction = this.walkingToGuest ? 1 : Number(right) - Number(left);
-    hero.classList.toggle("walking", direction !== 0);
-    if (!direction) return;
-    const { left: edge, speed, guest, talkDistance } = this.ctx.config.shop;
-    const approach = guest - talkDistance;
-    const step = speed * Math.min(delta, 50) / 1000;
-    this.shopX = Math.min(approach, Math.max(edge, this.shopX + direction * step));
-    hero.classList.toggle("facing-left", direction < 0);
-    hero.style.setProperty("--actor-x", `${this.shopX}%`);
-    if (this.shopX === approach) this.startConversation();
-  }
-  private startConversation() {
-    this.talking = true;
-    this.walkingToGuest = false;
-    this.draw();
-    ui.querySelector<HTMLButtonElement>(".shop-dialogue .primary")?.focus({ preventScroll: true });
-  }
-  update(_time = 0, delta = 0) {
+  update() {
     if (dialog.open) return;
-    this.moveInShop(delta);
     if (!this.clock) return;
     const period = tuning(this.run.completed).period;
     const phase = ((performance.now() - this.started) % period) / period;
@@ -567,6 +479,15 @@ export class PlayScene extends BaseScene {
   private act(a: string) {
     const s = this.run,
       p = s.phase;
+    if (a === "arrive") {
+      const visit = this.pendingVisit();
+      if (visit) {
+        this.enteredVisit = visit;
+        this.draw();
+        ui.querySelector<HTMLButtonElement>(".dialogue-box .primary")?.focus({ preventScroll: true });
+      }
+      return;
+    }
     if (a === "close") {
       dialog.close();
       return;
@@ -589,6 +510,7 @@ export class PlayScene extends BaseScene {
     if (a.startsWith("clue")) {
       const id = Number(a.slice(4));
       if (!available(s, id)) return;
+      this.questioning = false;
       collect(s, id);
       this.store();
       this.sfx("sfx_tick");
@@ -626,11 +548,13 @@ export class PlayScene extends BaseScene {
       return;
     }
     if (a === "ask" && p === "order" && s.completed === 5) {
-      popup(
-        "秦军户压低了声音",
-        "<p>“少的是营里的甲。寻常铺子打一把刀不稀奇，私接这些可要坐牢。账上还写着东西在库里，可修甲用的部件已经不见了。我在你们铺子旁捡着一片，你自己看。”</p>",
-        button("clue1", "接过甲片，看清戳印"),
-      );
+      this.questioning = true;
+      this.draw();
+      return;
+    }
+    if (a === "back-to-order" && this.questioning) {
+      this.questioning = false;
+      this.draw();
       return;
     }
     if (a === "escape" && p === "night" && s.chest) {
@@ -651,17 +575,12 @@ export class PlayScene extends BaseScene {
       this.goto("order");
       return;
     }
-    if (a === "talk" && p === "order" && !this.talking) {
-      if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        const { guest, talkDistance } = this.ctx.config.shop;
-        this.shopX = guest - talkDistance;
-        this.startConversation();
-      } else {
-        this.walkingToGuest = true;
-      }
+    if (a === "talk" && p === "order") {
+      this.answeredOrder = s.completed;
+      this.draw();
       return;
     }
-    if (a === "accept" && p === "order" && this.talking) {
+    if (a === "accept" && p === "order" && this.answeredOrder === s.completed) {
       this.note = "";
       s.hits = [];
       this.goto("heat");
@@ -728,10 +647,12 @@ export class PlayScene extends BaseScene {
       return;
     }
     if (a === "threat" && p === "threat") {
-      if (!this.threatPage) {
-        this.threatPage = 1;
-        this.sfx("sfx_scrap");
-        this.shake();
+      if (this.threatPage < story.threat.length - 1) {
+        this.threatPage++;
+        if (this.threatPage === story.threat.length - 1) {
+          this.sfx("sfx_scrap");
+          this.shake();
+        }
         this.draw();
       } else {
         s.threatSeen = true;
@@ -753,7 +674,9 @@ export class PlayScene extends BaseScene {
       this.ctx.game = newGame(this.ctx.config, Math.random());
       this.threatPage = 0;
       this.note = "";
-      this.shopOrder = -1;
+      this.answeredOrder = -1;
+      this.enteredVisit = "";
+      this.questioning = false;
       this.goto("letter");
       return;
     }
