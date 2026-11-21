@@ -24,7 +24,7 @@ export class TitleScene extends BaseScene {
     ui.onclick = (e) => {
       const action = (e.target as HTMLElement).closest("button")?.dataset.act;
       if (!action) return;
-      this.ctx.game = action === "resume" && run ? run : newGame();
+      this.ctx.game = action === "resume" && run ? run : newGame(this.ctx.config, Math.random());
       this.ctx.save.writeRun(this.ctx.game);
       this.music("bgm_main", 0.34);
       this.ctx.go("play");

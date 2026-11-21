@@ -23,6 +23,7 @@ export interface GameState {
   rep: number;
   paid: number;
   hits: number[];
+  forgeSeed?: number;
   streak: number;
   best: number;
   clues: boolean[];
@@ -30,7 +31,7 @@ export interface GameState {
   ending: Ending | "leave" | null;
   threatSeen: boolean;
 }
-export function newGame(config: Config = CONFIG): GameState {
+export function newGame(config: Config = CONFIG, random = 0): GameState {
   return {
     records: [],
     phase: "letter",
@@ -39,6 +40,7 @@ export function newGame(config: Config = CONFIG): GameState {
     rep: config.game.startRep,
     paid: 0,
     hits: [],
+    forgeSeed: Math.floor(random * 2 ** 32),
     streak: 0,
     best: 0,
     clues: [false, false, false],
@@ -55,20 +57,35 @@ export function orderIndex(s: GameState) {
 }
 export function tuning(index: number) {
   const day = Math.floor(index / 3);
+  const forge = CONFIG.forge;
+  const green = index === 0
+    ? forge.tutorialGreen
+    : forge.baseGreen - orders[index].difficulty * forge.difficultyStep - day * forge.dayStep;
   return {
-    green: index === 0 ? 0.2 : 0.145 - 0.022 * day,
-    yellow: 0.34 - 0.025 * day,
+    green,
+    yellow: green + forge.yellowMargin,
     period: 1500 - day * 180 + (index === 0 ? 220 : 0),
   };
 }
-export function mark(position: number, index: number) {
-  const d = Math.abs(position - 0.5),
-    t = tuning(index);
-  return d <= t.green ? 2 : d <= t.yellow ? 1 : 0;
+export function forgeTarget(s: GameState) {
+  const index = orderIndex(s);
+  const strike = s.hits.length;
+  const seed = s.forgeSeed ?? 0;
+  const { green, yellow } = tuning(index);
+  const { minimumOffset, edgeMargin } = CONFIG.forge;
+  // A saved run always restores the same target for the current strike.
+  const key = (seed + Math.imul(index + 1, 0x5f356495)) ^ Math.imul(strike + 1, 0x9e3779b9);
+  const sample = (Math.imul(key ^ (key >>> 16), 0x85ebca6b) >>> 0) / 2 ** 32;
+  const side = (index + strike + (seed & 1)) % 2 === 0 ? -1 : 1;
+  const maxOffset = 0.5 - yellow - edgeMargin;
+  const center = 0.5 + side * (minimumOffset + sample * (maxOffset - minimumOffset));
+  return { center, green, yellow };
 }
 export function hit(s: GameState, position: number) {
   if (s.phase !== "strike" || s.hits.length >= 3) return;
-  const value = mark(position, s.completed);
+  const { center, green, yellow } = forgeTarget(s);
+  const distance = Math.abs(position - center);
+  const value = distance <= green ? 2 : distance <= yellow ? 1 : 0;
   s.hits.push(value);
   s.streak = value === 2 ? s.streak + 1 : 0;
   s.best = Math.max(s.best, s.streak);

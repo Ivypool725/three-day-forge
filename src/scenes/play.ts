@@ -608,7 +608,7 @@ export class PlayScene extends BaseScene {
       return;
     }
     if (a === "restart" && p === "end") {
-      this.ctx.game = newGame();
+      this.ctx.game = newGame(this.ctx.config, Math.random());
       this.threatPage = 0;
       this.note = "";
       this.goto("letter");

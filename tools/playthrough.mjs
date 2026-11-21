@@ -71,7 +71,11 @@ async function threeHits(index) {
         if (!needle || !button || globalThis.__game.game.hits.length !== j)
           return false;
         const pos = parseFloat(needle.style.left) / 100;
-        if (rough ? pos > 0.05 : Math.abs(pos - 0.5) > 0.055) return false;
+        const meter = needle.parentElement.style;
+        const target = parseFloat(meter.getPropertyValue("--target")) / 100;
+        const margin = parseFloat(meter.getPropertyValue("--green")) / 400;
+        const farEdge = target < 0.5 ? pos >= 0.95 : pos <= 0.05;
+        if (rough ? !farEdge : Math.abs(pos - target) > margin) return false;
         button.click();
         return globalThis.__game.game.hits.length === j + 1;
       },

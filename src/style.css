@@ -379,7 +379,7 @@ blockquote {
 .meter i,
 .meter em {
   position: absolute;
-  left: 50%;
+  left: var(--target);
   transform: translateX(-50%);
   height: 100%;
   width: var(--yellow);

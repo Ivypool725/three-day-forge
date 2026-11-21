@@ -1,4 +1,4 @@
-import { appraisal, money, tuning, type GameState, type Phase } from "../core/game";
+import { appraisal, forgeTarget, money, type GameState, type Phase } from "../core/game";
 import { orders } from "../core/orders";
 import { art, button } from "./shared";
 import "./workshop.css";
@@ -19,7 +19,6 @@ export function isWorkshopPhase(phase: Phase): phase is WorkshopPhase {
 
 export function workshopMarkup(index: number) {
   const o = orders[index];
-  const t = tuning(index);
   const next =
     index === orders.length - 1
       ? "合上账本"
@@ -52,7 +51,7 @@ export function workshopMarkup(index: number) {
           ${art("item_" + o.icon, "workshop-finished")}
         </div>
         <div class="workshop-timing" hidden>
-          <div class="meter" aria-hidden="true" style="--yellow:${t.yellow * 200}%;--green:${t.green * 200}%">
+          <div class="meter" aria-hidden="true">
             <i></i><em></em><b id="needle"></b>
           </div>
           <div class="marks">
@@ -102,6 +101,13 @@ export function updateWorkshop(
   const hintNode = root.querySelector(".work-order-hint")!;
   if (hintNode.textContent !== hint) hintNode.textContent = hint;
   root.querySelector<HTMLElement>(".workshop-timing")!.hidden = phase !== "strike";
+  if (phase === "strike") {
+    const { center, green, yellow } = forgeTarget(state);
+    const meter = root.querySelector<HTMLElement>(".meter")!;
+    meter.style.setProperty("--target", `${center * 100}%`);
+    meter.style.setProperty("--green", `${green * 200}%`);
+    meter.style.setProperty("--yellow", `${yellow * 200}%`);
+  }
   root.querySelector("#hit-note")!.textContent = note || "三锤定成色";
   root.querySelectorAll(".marks b").forEach((mark, index) => {
     mark.textContent = ["偏锤", "命中", "正中"][state.hits[index]] ?? "○";
