@@ -1,20 +1,13 @@
-/// <reference types="vitest/config" />
-import { defineConfig } from 'vite';
-
-// PACK=1 时（npm run pack）把所有素材内联进 JS，最后由 tools/pack.mjs 合成一个 index.html。
-const pack = process.env.PACK === '1';
-
-export default defineConfig({
-  base: './',
-  server: { port: 5173, host: true },
-  build: {
-    target: 'es2022',
-    outDir: pack ? 'release' : 'dist',
-    emptyOutDir: true,
-    assetsInlineLimit: pack ? () => true : undefined,
-    chunkSizeWarningLimit: pack ? 100_000 : 2_000,
-  },
-  test: {
-    include: ['tests/**/*.test.ts'],
-  },
+import { defineConfig, loadEnv } from 'vite';
+import { customerApi } from './server/customer.mjs';
+const pack=process.env.PACK==='1';
+export default defineConfig(({mode})=>{
+  const key=process.env.KSYUN_API_KEY || loadEnv(mode,process.cwd(),'KSYUN_').KSYUN_API_KEY;
+  const install=(server)=>{server.middlewares.use(customerApi(key));};
+  return {
+    base:'./', server:{port:5173,host:'127.0.0.1'},
+    plugins:[{name:'qingxi-customer',configureServer:install,configurePreviewServer:install}],
+    build:{target:'es2022',outDir:pack?'release':'dist',emptyOutDir:true,assetsInlineLimit:pack?()=>true:undefined,chunkSizeWarningLimit:pack?100000:2500},
+    test:{include:['tests/**/*.test.ts']}
+  };
 });

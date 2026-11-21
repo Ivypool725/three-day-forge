@@ -1,0 +1,16 @@
+export const orders = [
+  { name:'刘农夫', portrait:'woodcutter', item:'锄头', icon:'hoe', max:3, line:'小师傅，老周不在啊？趁地还软，给我打把锄头。', use:'明早下地松土' },
+  { name:'小荷', portrait:'heroine', item:'菜刀', icon:'knife', max:4, line:'周师傅回乡去了？前儿他来吃面还这么说呢。哎，鱼要下锅，给我把菜刀。', use:'酒馆后厨切菜' },
+  { name:'猎户', portrait:'merchant', item:'猎刀', icon:'dagger', max:5, line:'上山前得换把刀。你听，街口的卖糖人都收摊了，可别让我摸黑走。', use:'进山前更换旧刀' },
+  { name:'刘农夫', portrait:'woodcutter', item:'镰刀', icon:'sickle', max:4, line:'昨晚你铺子没熄灯啊？先顾地里的麦子吧，给我打一把镰刀。', use:'收割河边的麦田' },
+  { name:'小荷', portrait:'heroine', item:'菜刀', icon:'knife', max:5, line:'今天酒席多，再添把菜刀。说起来，周师傅临走连平日赊的面钱都结清了。', use:'给酒席的帮厨添刀' },
+  { name:'秦军户', portrait:'guard', item:'佩刀', icon:'sword', max:6, line:'劳烦修修旧佩刀。你师傅近来接过营里的活么？库里有东西，对不上数。', use:'修整随身的旧佩刀' },
+  { name:'猎户', portrait:'merchant', item:'猎刀', icon:'dagger', max:5, line:'那夜我从渡口回来，见有人提着沉甸甸的包袱上船。先给我看看刀，我得赶路。', use:'替进山的同伴订刀' },
+  { name:'刘农夫', portrait:'woodcutter', item:'镰刀', icon:'sickle', max:6, line:'我还记得那辆车。几个人把铁箱抬进你家后院，车轮印压得可深了。镰刀好了叫我。', use:'收完最后一垄麦子' },
+  { name:'外乡客', portrait:'scholar', item:'长刀', icon:'sword', max:7, line:'打一把长刀，天黑前取。听说有人带着银子和账册出了县城。说闲话容易，作证难。', use:'商旅启程前取货' },
+] as const;
+export const evidence = [
+  { name:'被涂改的账本', object:'翻开柜脚的账页', tag:'铺中 · 散页', text:'“预收二十两。”墨线划过货名，银两一栏却清清楚楚。往后的几页被人齐根撕去。' },
+  { name:'军中甲片', object:'查看布包里的铁片', tag:'营中 · 物证', text:'秦军户指过的那个缺口旁，确有青溪驻营的戳印。这样的甲片本该收在军库。' },
+  { name:'交易收据', object:'摸索箱底的夹层', tag:'后院 · 存根', text:'“预付二十两，加工三副。”经手人孙承安，旁盖县衙押记。背面是老周熟悉的签字，墨色早干了。' },
+] as const;

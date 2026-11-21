@@ -8,11 +8,14 @@ import { playRecipe, RECIPES, type PlayOptions } from './synth';
 
 // 把 assets/ 下所有图片和声音交给 Vite 处理，得到可以加载的地址。
 // 开发时是本地地址；npm run pack 时会变成内联数据，整个游戏只剩一个 index.html。
-const FILES = import.meta.glob('/assets/**/*.{png,jpg,jpeg,webp,gif,svg,mp3,ogg,wav,m4a}', {
-  eager: true,
-  query: '?url',
-  import: 'default',
-}) as Record<string, string>;
+const FILES = import.meta.glob([
+  "/assets/images/bg/{bg_backyard.webp,bg_forge.webp,bg_result.webp,bg_shop.webp,bg_street_night.webp,bg_dawn.webp}",
+  "/assets/images/char/{char_apprentice_happy.webp,char_apprentice_neutral.webp,char_apprentice_sad.webp,char_guard_happy.webp,char_guard_neutral.webp,char_guard_sad.webp,char_heroine_happy.webp,char_heroine_neutral.webp,char_heroine_sad.webp,char_merchant_happy.webp,char_merchant_neutral.webp,char_merchant_sad.webp,char_scholar_happy.webp,char_scholar_neutral.webp,char_scholar_sad.webp,char_woodcutter_happy.webp,char_woodcutter_neutral.webp,char_woodcutter_sad.webp}",
+  "/assets/images/tool/{tool_furnace_hot.webp,tool_quench_bucket.webp}",
+  "/assets/images/item/{item_chest.webp,item_dagger.webp,item_hammer.webp,item_hoe.webp,item_knife.webp,item_order_slip.webp,item_scrap.webp,item_sickle.webp,item_sword.webp}",
+  "/assets/images/fx/{fx_crack.webp,fx_spark.webp,fx_steam.webp}",
+  "/assets/sounds/*.mp3"
+], { eager: true, query: "?url", import: "default" }) as Record<string, string>;
 
 /** manifest 里写的是 assets/... 相对路径，换成 Vite 给的地址；文件不存在时返回 undefined。 */
 export function urlOf(path: string): string | undefined {
