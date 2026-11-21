@@ -21,7 +21,9 @@ import {
 import story from "../core/story.json";
 import { art, button, dialog, identity, panel, popup, ui } from "./shared";
 import { isWorkshopPhase, updateWorkshop, workshopMarkup } from "./workshop";
-import { arrivalScene, dialogueScene } from "./dialogue";
+import { arrivalScene, counterScene, dialogueScene } from "./dialogue";
+import { receipt, visitRecord, visits } from "../core/visits";
+import { isLocalCounter, openCounterTalk } from "./counter-talk";
 
 const constable = { portrait: "constable", name: "陈捕头" };
 const nums = ["一", "二", "三"];
@@ -51,7 +53,7 @@ export class PlayScene extends BaseScene {
   private until = 0;
   private muted = false;
   private request?: AbortController;
-  private answeredOrder = -1;
+  private closeCounterTalk?: () => void;
   private enteredVisit = "";
   private questioning = false;
   constructor() {
@@ -61,7 +63,7 @@ export class PlayScene extends BaseScene {
     return this.ctx.game;
   }
   create() {
-    this.bg = this.background("bg_dawn");
+    this.bg = this.background("bg_forge_clear");
     this.muted = this.sound.mute;
     this.started = performance.now();
     this.threatPage = 0;
@@ -69,7 +71,6 @@ export class PlayScene extends BaseScene {
     this.workshop = null;
     this.heating = false;
     this.until = 0;
-    this.answeredOrder = -1;
     this.enteredVisit = "";
     this.questioning = false;
     const click = (e: Event) => {
@@ -79,7 +80,7 @@ export class PlayScene extends BaseScene {
       if (target && !target.disabled) this.act(target.dataset.act!);
     };
     this.onKey((e) => {
-      if (dialog.open) return;
+      if (dialog.open || document.activeElement instanceof HTMLInputElement) return;
       if (e.code !== "Space") return;
       const focused = document.activeElement;
       if (this.run.phase === "strike") {
@@ -92,13 +93,14 @@ export class PlayScene extends BaseScene {
         ui.querySelector<HTMLButtonElement>(
           this.workshop
             ? ".workshop [aria-current=step]"
-            : ".sheet .primary, .dialogue-box .primary",
+            : ".sheet .primary, .dialogue-box .primary, .shop-dialogue .primary",
         )?.click();
       }
     });
     ui.addEventListener("click", click);
     dialog.addEventListener("click", click);
     this.events.once("shutdown", () => {
+      this.closeCounterTalk?.();
       this.request?.abort();
       ui.removeEventListener("click", click);
       dialog.removeEventListener("click", click);
@@ -169,6 +171,8 @@ export class PlayScene extends BaseScene {
     return visit === this.enteredVisit ? "" : visit;
   }
   private draw() {
+    this.closeCounterTalk?.();
+    this.closeCounterTalk = undefined;
     const s = this.run,
       i = orderIndex(s),
       o = orders[i],
@@ -191,11 +195,12 @@ export class PlayScene extends BaseScene {
       "</b></span>" +
       button("audio", this.muted ? "启音" : "静音", "mini") +
       button("journal", "手记", "mini") +
+      (p !== "end" ? button("save-menu", "存档", "mini") : "") +
       "</div></header>";
 
     if (isWorkshopPhase(p)) {
       if (!this.workshop) {
-        this.bg.setTexture("bg_dawn").setDisplaySize(width, height);
+        this.bg.setTexture("bg_forge_clear").setDisplaySize(width, height);
         this.soundscape();
         ui.className = "play day" + day;
         ui.innerHTML = hdr + workshopMarkup(i) + "<footer>" + goal + "</footer>";
@@ -213,8 +218,8 @@ export class PlayScene extends BaseScene {
     this.workshop = null;
     this.clock = null;
     const night = ["threat", "reminder", "final"].includes(p);
-    let bg = p === "night" ? "bg_courtyard" : "bg_dawn";
-    if (p === "end") bg = s.ending === "expose" ? "bg_dawn" : "bg_courtyard";
+    const hasDialogue = conversation && !this.pendingVisit();
+    const bg = hasDialogue ? "bg_forge_blur" : "bg_forge_clear";
     this.bg.setTexture(bg).setDisplaySize(width, height);
     this.soundscape();
     ui.className =
@@ -226,7 +231,7 @@ export class PlayScene extends BaseScene {
     let body = "";
     if (this.pendingVisit()) {
       body = p === "order"
-        ? arrivalScene("有客上门", `${o.name}在柜台前等你。`, "上前交谈　→")
+        ? arrivalScene("有客上门", visits[i].entrance, "上前交谈　→")
         : arrivalScene("门外有动静", p === "threat" ? "门外传来三声叩响。" : "门外有人等你过去。", "上前看看　→");
     } else if (p === "letter") {
       body =
@@ -252,16 +257,13 @@ export class PlayScene extends BaseScene {
           "“少的是营里的甲。寻常铺子打一把刀不稀奇，私接这些可要坐牢。账上还写着东西在库里，可修甲用的部件已经不见了。我在你们铺子旁捡着一片，你自己看。”",
           button("clue1", "接过甲片，看清戳印") + button("back-to-order", "回到订单", "quiet"),
         );
-      } else if (this.answeredOrder === i) {
-        body = dialogueScene(
-          o, "apprentice",
-          `“${o.item}，我记下了。这就开炉。”`,
-          button("accept", "接下这单　→") +
-            (i === 5 ? button("ask", "追问营里的事", "quiet") : "") +
-            catchup,
-        );
       } else {
-        body = dialogueScene(o, "guest", "“" + o.line + "”", button("talk", "回应　→") + catchup);
+        body = counterScene(
+          o,
+          "“" + o.line + "”",
+          button("commission", "接下这单", "primary") +
+            (i === 5 ? button("ask", "追问营里的事", "quiet") : "") + catchup,
+        );
       }
     } else if (p === "receipt") {
       body = dialogueScene(
@@ -366,6 +368,8 @@ export class PlayScene extends BaseScene {
           ? "城西 · 清晨"
           : goal) +
       "</footer>";
+    const talk = ui.querySelector<HTMLElement>(".shop-dialogue--conversation");
+    if (talk) this.closeCounterTalk = openCounterTalk(talk, s, i, () => this.store());
     if (p === "receipt") void this.reply(i);
   }
   update() {
@@ -379,12 +383,13 @@ export class PlayScene extends BaseScene {
   private async reply(i: number) {
     const grade = appraisal(this.run.hits, i).grade;
     const voice = ui.querySelector("#voice")!;
+    const choice = visitRecord(this.run, i).choice;
     voice.textContent =
       "“" +
-      story.voices[i][grade === "瑕疵" ? 0 : grade === "合格" ? 1 : 2] +
+      (choice !== undefined ? receipt(i, choice, grade) : story.voices[i][grade === "瑕疵" ? 0 : grade === "合格" ? 1 : 2]) +
       "”";
-    const ordinary = i !== 5 && i !== 8;
-    if (!ordinary || !/^https?:$/.test(location.protocol)) return;
+    if (isLocalCounter()) return;
+    if (choice === undefined && (i === 5 || i === 8)) return;
     const controller = new AbortController();
     this.request = controller;
     const timer = setTimeout(() => controller.abort(), 3750);
@@ -392,7 +397,7 @@ export class PlayScene extends BaseScene {
       const res = await fetch("/api/customer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ index: i, grade }),
+        body: JSON.stringify({ index: i, grade, choice }),
         signal: controller.signal,
       });
       if (!res.ok) return;
@@ -447,8 +452,28 @@ export class PlayScene extends BaseScene {
                   .join("")
               : "<p>还没有收下证物。</p>")
           : "") +
-        ledger,
+        ledger + '<section class="visit-notes" aria-label="柜台往来"></section>',
     );
+    const notes = dialog.querySelector(".visit-notes")!;
+    for (let i = 0; i <= Math.min(s.completed, orders.length - 1); i++) {
+      const entry = visitRecord(s, i);
+      if (!entry.turns.length && entry.choice === undefined) continue;
+      const page = document.createElement("details");
+      const title = document.createElement("summary");
+      title.textContent = orders[i].name + " · " + visits[i].title;
+      page.append(title);
+      if (entry.choice !== undefined) {
+        const decision = document.createElement("p");
+        decision.textContent = "柜台约定　" + visits[i].options[entry.choice].label;
+        page.append(decision);
+      }
+      for (const turn of entry.turns) {
+        const excerpt = document.createElement("blockquote");
+        excerpt.textContent = "你：" + turn.question + "　" + orders[i].name + "：“" + turn.answer + "”";
+        page.append(excerpt);
+      }
+      notes.append(page);
+    }
   }
   private search() {
     const s = this.run;
@@ -485,7 +510,7 @@ export class PlayScene extends BaseScene {
       if (visit) {
         this.enteredVisit = visit;
         this.draw();
-        ui.querySelector<HTMLButtonElement>(".dialogue-box .primary")?.focus({ preventScroll: true });
+        ui.querySelector<HTMLButtonElement>(".dialogue-box .primary, .counter-history")?.focus({ preventScroll: true });
       }
       return;
     }
@@ -498,6 +523,30 @@ export class PlayScene extends BaseScene {
       this.sound.mute = this.muted;
       const toggle = ui.querySelector("[data-act=audio]");
       if (toggle) toggle.textContent = this.muted ? "启音" : "静音";
+      return;
+    }
+    if (a === "save-menu" && p !== "end") {
+      popup(
+        "存档",
+        '<p role="status">进度保存在当前浏览器。下次在标题页选择同一个存档格继续。</p>',
+        button("save-progress", "立即保存") +
+          button("save-and-title", "保存并返回标题", "quiet"),
+      );
+      return;
+    }
+    if ((a === "save-progress" || a === "save-and-title") && p !== "end") {
+      const saved = this.ctx.save.writeRun(s);
+      if (saved && a === "save-and-title") {
+        dialog.close();
+        this.ctx.go("title");
+      } else {
+        const status = dialog.querySelector('[role="status"]');
+        if (status) {
+          status.textContent = saved
+            ? `进度已保存到存档 ${this.ctx.save.slotNumber}。`
+            : "保存失败，请检查浏览器是否允许本地存储。";
+        }
+      }
       return;
     }
     if (a === "journal") {
@@ -576,12 +625,20 @@ export class PlayScene extends BaseScene {
       this.goto("order");
       return;
     }
-    if (a === "talk" && p === "order") {
-      this.answeredOrder = s.completed;
-      this.draw();
+    if (p === "order" && !this.pendingVisit() && !this.questioning && a === "commission") {
+      const visit = visits[s.completed];
+      const order = orders[s.completed];
+      popup(
+        "接下这单",
+        '<p class="commission-summary">' + order.name + ' · ' + order.item +
+          ' · 最高 ' + order.max + ' 两</p><p>这单怎么做？选定后开始加热。</p>',
+        visit.options.map((option, n) => button("commission-" + n, option.label)).join(""),
+      );
       return;
     }
-    if (a === "accept" && p === "order" && this.answeredOrder === s.completed) {
+    if (p === "order" && !this.pendingVisit() && !this.questioning && (a === "commission-0" || a === "commission-1")) {
+      dialog.close();
+      visitRecord(s, s.completed).choice = a === "commission-0" ? 0 : 1;
       this.note = "";
       s.hits = [];
       this.goto("heat");
@@ -675,14 +732,12 @@ export class PlayScene extends BaseScene {
       this.ctx.game = newGame(this.ctx.config, Math.random());
       this.threatPage = 0;
       this.note = "";
-      this.answeredOrder = -1;
       this.enteredVisit = "";
       this.questioning = false;
       this.goto("letter");
       return;
     }
     if (a === "cover" && p === "end") {
-      this.ctx.save.clearRun();
       this.ctx.go("title");
     }
   }

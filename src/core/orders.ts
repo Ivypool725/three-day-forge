@@ -16,7 +16,7 @@ export const orders = [
     difficulty: 1,
     icon: "knife",
     max: 4,
-    line: "周师傅回乡去了？前儿他来吃面还提过。后厨那把刀钝了，鱼还等着下锅呢。劳烦打一把新的，要是趁手，我出四两。",
+    line: "小师傅，周师傅前儿还来吃过面呢。劳烦给我打把后厨用的菜刀。",
     use: "酒馆后厨切菜",
   },
   {
@@ -26,7 +26,7 @@ export const orders = [
     difficulty: 2,
     icon: "dagger",
     max: 5,
-    line: "上山前得换把刀。你听，街口的卖糖人都收摊了，可别让我摸黑走。",
+    line: "上山前得换把刀。你先接着，我听听外头是不是又摇铃了。",
     use: "进山前更换旧刀",
   },
   {
@@ -36,7 +36,7 @@ export const orders = [
     difficulty: 1,
     icon: "sickle",
     max: 4,
-    line: "昨晚你铺子没熄灯啊？先顾地里的麦子吧，给我打一把镰刀。",
+    line: "昨晚你铺子里还亮着。今儿要把镰，柄先别照我的手量。",
     use: "收割河边的麦田",
   },
   {
@@ -46,7 +46,7 @@ export const orders = [
     difficulty: 1,
     icon: "knife",
     max: 5,
-    line: "今天酒席多，再添把菜刀。说起来，周师傅临走连平日赊的面钱都结清了。",
+    line: "掌柜要摆酒，再添一把菜刀。咦，你这柜上也有记赊账的木签？",
     use: "给酒席的帮厨添刀",
   },
   {
@@ -66,7 +66,7 @@ export const orders = [
     difficulty: 2,
     icon: "dagger",
     max: 5,
-    line: "那夜我从渡口回来，见有人提着沉甸甸的包袱上船。先给我看看刀，我得赶路。",
+    line: "再订一把。先说好，今儿来取的人可长得不像我。你若有话问，趁我船还没开。",
     use: "替进山的同伴订刀",
   },
   {
@@ -76,7 +76,7 @@ export const orders = [
     difficulty: 1,
     icon: "sickle",
     max: 6,
-    line: "我还记得那辆车。几个人把铁箱抬进你家后院，车轮印压得可深了。镰刀好了叫我。",
+    line: "最后一垄，我想自己收。还有，那晚进你家后院的车，我想起来了。",
     use: "收完最后一垄麦子",
   },
   {
@@ -86,7 +86,7 @@ export const orders = [
     difficulty: 4,
     icon: "sword",
     max: 7,
-    line: "打一把长刀，天黑前取。听说有人带着银子和账册出了县城。说闲话容易，作证难。",
+    line: "商队托我取件，天黑就走。茶摊上那些话，我听到的可以讲，看见的另算。",
     use: "商旅启程前取货",
   },
 ] as const;

@@ -1,6 +1,8 @@
 import { CONFIG, type Config } from "../config";
 import { orders } from "./orders";
 
+import type { Exchange, VisitRecord } from "./visits";
+
 export type Phase =
   | "letter"
   | "order"
@@ -17,6 +19,10 @@ export type Phase =
   | "end";
 export type Ending = "pay" | "expose" | "arrest";
 export interface GameState {
+  visits?: Record<number, VisitRecord>;
+  // 第一版小荷问单的存档字段，在首次读到这一单时迁移。
+  xiaoheBlade?: "thin" | "thick";
+  xiaoheTalk?: Exchange[];
   records: { grade: string; money: number; rep: number }[];
   phase: Phase;
   completed: number;

@@ -119,6 +119,7 @@ try {
   if (movie) await audioStart();
   await pause(2200);
   await choose("new");
+  await choose("slot-0");
   await pause(3200);
   await choose("open");
   assert.equal((await read()).silver, 0);
@@ -126,8 +127,6 @@ try {
     assert.equal(await p.locator(".dialogue-cast[data-speaker]").count(), 0);
     await choose("arrive");
     assert.equal(await p.locator(".dialogue-cast").getAttribute("data-speaker"), "guest");
-    await choose("talk");
-    assert.equal(await p.locator(".dialogue-cast").getAttribute("data-speaker"), "apprentice");
     if ((route === "expose" || route === "arrest") && i === 5) {
       await choose("ask");
       await choose("clue1");
@@ -143,7 +142,16 @@ try {
     }
     if (i === 0) await snap("order");
     await pause(i === 0 ? 2100 : i === 1 ? 1700 : 380);
-    await choose("accept");
+    if (url.startsWith("file:")) {
+      await p.locator(".counter-topics button").first().click();
+      assert.ok((await read()).visits[i].turns.length);
+      if (i === 0) {
+        await p.locator(".counter-topics .follow-up").click();
+        assert.equal((await read()).visits[i].turns.length, 2);
+      }
+    }
+    await choose("commission");
+    await choose("commission-" + (i % 2));
     await pause(i === 0 ? 950 : 220);
     await choose("heat");
     if (i === 0) {

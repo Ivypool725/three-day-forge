@@ -1,5 +1,7 @@
 {
   "images": {
+    "bg_forge_clear": "assets/images/bg/bg_forge_clear.png",
+    "bg_forge_blur": "assets/images/bg/bg_forge_blur.png",
     "face_apprentice": "assets/images/portrait/apprentice.webp",
     "tool_furnace_hot": "assets/images/tool/tool_furnace_hot.webp",
     "tool_quench_bucket": "assets/images/tool/tool_quench_bucket.webp",

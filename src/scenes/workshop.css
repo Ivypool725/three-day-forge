@@ -1,6 +1,7 @@
 .workshop {
   position: absolute;
   inset: 0;
+  isolation: isolate;
   overflow: hidden;
   pointer-events: none;
 }
@@ -11,7 +12,7 @@
   --anvil-x: 69%;
   --anvil-y: 67%;
   --water-x: 43%;
-  --water-y: 85%;
+  --water-y: min(85%, calc(50% + 34cqh));
   --counter-x: 87%;
   --counter-y: 59%;
   --counter-height: clamp(94px, 23cqh, 210px);
@@ -353,6 +354,13 @@
   to { opacity: 0; transform: scale(1.35) translateY(-20%); }
 }
 
+@media (min-aspect-ratio: 5/2) {
+  .workshop-floor {
+    --anvil-y: min(67%, calc(50% + 30cqh));
+    --water-y: min(85%, calc(50% + 30cqh));
+  }
+}
+
 @media (max-height: 525px) and (min-aspect-ratio: 7/5) {
   .work-order {
     top: 19%;
@@ -373,9 +381,9 @@
     --furnace-x: 24%;
     --furnace-y: 29%;
     --anvil-x: 73%;
-    --anvil-y: 54%;
+    --anvil-y: 51.5%;
     --water-x: 24%;
-    --water-y: 54%;
+    --water-y: 51.5%;
     --counter-x: 73%;
     --counter-y: 27%;
     --counter-height: clamp(69px, 12cqh, 117px);
@@ -416,7 +424,7 @@
   .work-order {
     top: auto;
     left: 5vw;
-    bottom: clamp(52px, 10cqh, 84px);
+    bottom: clamp(39px, 7cqh, 68px);
     width: min(90vw, 365px);
     padding: 12px 14px;
   }

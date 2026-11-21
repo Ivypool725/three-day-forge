@@ -1,4 +1,5 @@
 import { appraisal, forgeTarget, money, reforgeCost, type GameState, type Phase } from "../core/game";
+import { visitRecord, visits } from "../core/visits";
 import { orders } from "../core/orders";
 import { art, button } from "./shared";
 import "./workshop.css";
@@ -86,7 +87,9 @@ export function updateWorkshop(
     else control.removeAttribute("aria-current");
   }
 
-  const hint = heating ? "铁坯正在炉里烧红……" : step.hint;
+  const choice = visitRecord(state, index).choice;
+  const instruction = heating ? "铁坯正在炉里烧红……" : step.hint;
+  const hint = choice !== undefined ? visits[index].options[choice].label + " · " + instruction : instruction;
   const hintNode = root.querySelector(".work-order-hint")!;
   if (hintNode.textContent !== hint) hintNode.textContent = hint;
   const retry = root.querySelector<HTMLButtonElement>('[data-act="reforge"]')!;

@@ -11,6 +11,7 @@ import {
   reforge,
   tuning,
 } from "../src/core/game";
+import { visits, previousVisit, receipt, visitRecord } from "../src/core/visits";
 import { createSave } from "../src/engine/save";
 
 describe("三日账本", () => {
@@ -134,4 +135,23 @@ describe("三日账本", () => {
     save.clearRun();
     expect(save.run).toBeNull();
   });
+});
+
+it("九单分别记住柜台约定，成色和选择各自影响验货", () => {
+  expect(visits).toHaveLength(9);
+  visits.forEach((card, i) => {
+    expect(card.questions.length).toBeGreaterThanOrEqual(3);
+    expect(receipt(i, 0, "精良")).not.toEqual(receipt(i, 1, "精良"));
+    expect(receipt(i, 0, "瑕疵")).not.toEqual(receipt(i, 0, "合格"));
+  });
+  expect(visits.map((_, i) => previousVisit(i))).toEqual([-1,-1,-1,0,1,-1,2,3,-1]);
+});
+
+it("续读旧版小荷对话和刀身，其他顾客独立建档", () => {
+  const s = newGame();
+  s.xiaoheBlade = "thick";
+  s.xiaoheTalk = [{question:"还磨吗？", answer:"昨儿磨过了。", source:"local"}];
+  expect(visitRecord(s, 1)).toEqual({choice:1,turns:s.xiaoheTalk});
+  expect(visitRecord(s, 4)).toEqual({turns:[]});
+  expect(visitRecord(s, 1)).toBe(visitRecord(s, 1));
 });
