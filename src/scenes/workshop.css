@@ -7,16 +7,17 @@
 }
 
 .workshop-floor {
-  --furnace-x: 54%;
-  --furnace-y: 49%;
-  --anvil-x: 69%;
-  --anvil-y: 67%;
-  --water-x: 43%;
-  --water-y: min(85%, calc(50% + 34cqh));
+  /* 炉口、砧面和水面在 bg_forge_clear 中的位置。 */
+  --furnace-x: 49%;
+  --furnace-y: 43%;
+  --anvil-x: 58%;
+  --anvil-y: 54%;
+  --water-x: 20%;
+  --water-y: 63%;
   --counter-x: 87%;
   --counter-y: 59%;
   --counter-height: clamp(94px, 23cqh, 210px);
-  --timing-y: 48%;
+  --timing-y: 39%;
   position: absolute;
   top: 50%;
   left: 50%;
@@ -44,7 +45,7 @@
 }
 
 .work-station:disabled {
-  cursor: default;
+  pointer-events: none;
 }
 
 .work-station:active {
@@ -137,13 +138,14 @@
 .station-hammer {
   position: absolute;
   z-index: 2;
-  top: -41%;
-  left: 48%;
+  top: 50%;
+  left: 50%;
   width: 80%;
   aspect-ratio: 1;
   object-fit: contain;
-  transform: rotate(-14deg);
-  transform-origin: 81% 65%;
+  translate: -63% -34%;
+  transform: translate(35%, -42%) rotate(-28deg);
+  transform-origin: 63% 34%;
   opacity: 0;
   filter: drop-shadow(0 5px 8px #1c140a8c);
   pointer-events: none;
@@ -167,8 +169,8 @@
   top: var(--piece-y);
   width: clamp(55px, 9cqw, 128px);
   aspect-ratio: 1;
-  transform: translate(-50%, -50%) scale(var(--piece-scale, 1));
-  transition: left 0.31s ease-in-out, top 0.31s ease-in-out, transform 0.24s ease;
+  transform: translate(-50%, -50%);
+  transition: left 0.31s ease-in-out, top 0.31s ease-in-out;
 }
 
 .workshop-piece img {
@@ -210,7 +212,6 @@
 .workshop:is([data-phase="strike"], [data-phase="broken"]) .workshop-piece {
   --piece-x: var(--anvil-x);
   --piece-y: calc(var(--anvil-y) - 4%);
-  --piece-scale: 1.28;
 }
 
 .workshop:is([data-phase="quench"], [data-phase="inspect"]) .workshop-piece {
@@ -274,7 +275,6 @@
   border: 1px solid #d9af6c85;
   border-radius: 4px;
   box-shadow: 0 7px 24px #140f0a73;
-  pointer-events: auto;
 }
 
 .work-order .meta,
@@ -326,27 +326,28 @@
   background: #edc485;
   color: #392719;
   font-size: clamp(16px, 1.4cqw, 24px);
+  pointer-events: auto;
 }
 
 .work-station .flare {
   position: absolute;
   z-index: 3;
+  top: 50%;
+  left: 50%;
   width: 86%;
-  left: 7%;
-  bottom: 32%;
+  translate: -50% -58%;
   pointer-events: none;
   animation: flare 0.6s forwards;
 }
 
 .anvil-station .flare {
+  top: 34%;
   width: 102%;
-  left: -1%;
 }
 
 @keyframes hammer-down {
-  0% { transform: rotate(-28deg); }
-  35% { transform: translate(-4%, 12%) rotate(-48deg); }
-  72% { transform: rotate(-4deg); }
+  35% { transform: translate(0, -15%) rotate(-48deg); }
+  72% { transform: translate(24%, -34%) rotate(-20deg); }
 }
 
 @keyframes flare {
@@ -354,16 +355,9 @@
   to { opacity: 0; transform: scale(1.35) translateY(-20%); }
 }
 
-@media (min-aspect-ratio: 5/2) {
-  .workshop-floor {
-    --anvil-y: min(67%, calc(50% + 30cqh));
-    --water-y: min(85%, calc(50% + 30cqh));
-  }
-}
-
 @media (max-height: 525px) and (min-aspect-ratio: 7/5) {
   .work-order {
-    top: 19%;
+    top: max(44px, 12%);
     left: 3vw;
     padding: 10px 12px;
     width: clamp(162px, 24cqw, 220px);
@@ -371,8 +365,20 @@
   .work-order-item {
     margin-block: 4px;
   }
+  .work-order h1 {
+    font-size: 22px;
+  }
+  .work-order-item p,
+  .work-order-hint {
+    font-size: 13px;
+    line-height: 1.4;
+  }
   .work-order-hint {
     padding-top: 5px;
+  }
+  .work-order-result:not([hidden]) {
+    margin-top: 4px;
+    font-size: 14px;
   }
 }
 
@@ -406,8 +412,6 @@
     filter: drop-shadow(0 4px 7px #17130cbf);
   }
   .station-hammer {
-    top: -14%;
-    left: 57%;
     width: 59%;
   }
   .station-tag {
