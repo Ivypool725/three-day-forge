@@ -127,13 +127,15 @@ try {
     assert.equal(await p.locator(".dialogue-cast[data-speaker]").count(), 0);
     await choose("arrive");
     const sideOrders = route === "guarantee" ? [4, 7] : route === "appeal" ? [5, 6, 8] : [];
-    if (sideOrders.includes(i)) {
-      await choose("side-story");
-      await choose("close");
-    }
-    if (route === "witness" && (i === 4 || i === 6)) {
-      await choose("testimony");
-      await choose("close");
+    const branch = sideOrders.includes(i) ? "side-story"
+      : route === "witness" && (i === 4 || i === 6) ? "testimony" : "";
+    if (branch) {
+      await choose(branch);
+      assert.equal(await p.locator(".dialogue-cast").getAttribute("data-speaker"), "apprentice");
+      await choose("branch-next");
+      assert.equal(await p.locator(".dialogue-cast").getAttribute("data-speaker"), "guest");
+      await choose("branch-next");
+      assert.equal(await p.locator('[data-act="commission"]').count(), 1);
     }
     assert.equal(await p.locator(".dialogue-cast").getAttribute("data-speaker"), "guest");
     if ((route === "expose" || route === "arrest") && i === 5) {

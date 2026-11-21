@@ -60,6 +60,7 @@ export class PlayScene extends BaseScene {
   private closeCounterTalk?: () => void;
   private enteredVisit = "";
   private questioning = false;
+  private branchTalk?: { kind: "side-story" | "testimony"; answering: boolean };
   constructor() {
     super("play");
   }
@@ -77,6 +78,7 @@ export class PlayScene extends BaseScene {
     this.until = 0;
     this.enteredVisit = "";
     this.questioning = false;
+    this.branchTalk = undefined;
     const click = (e: Event) => {
       const target = (e.target as HTMLElement).closest<HTMLButtonElement>(
         "button[data-act]",
@@ -223,7 +225,7 @@ export class PlayScene extends BaseScene {
     this.clock = null;
     const night = ["threat", "reminder", "final"].includes(p);
     const hasDialogue = conversation && !this.pendingVisit();
-    const bg = hasDialogue ? "bg_forge_blur" : "bg_forge_clear";
+    const bg = p === "night" ? "bg_courtyard" : hasDialogue ? "bg_forge_blur" : "bg_forge_clear";
     this.bg.setTexture(bg).setDisplaySize(width, height);
     this.soundscape();
     ui.className =
@@ -255,15 +257,29 @@ export class PlayScene extends BaseScene {
             "quiet",
           )
         : "";
-      if (this.questioning) {
+      const branch = this.branchTalk;
+      const sideStory = availableSideStory(s);
+      const witness = witnessStatements.findIndex((entry) => entry.order === i);
+      const exchange = branch?.kind === "side-story" ? sideStory : witnessStatements[witness];
+      if (branch && exchange) {
+        const requirement = branch.answering && branch.kind === "side-story" && sideStory && "pledge" in sideStory
+          ? '<div class="newgoal"><strong>柜台约定 · ' +
+            visits[sideStory.pledge.order].options[sideStory.pledge.choice].label +
+            "，交付至少合格的成品</strong></div>"
+          : "";
+        body = dialogueScene(
+          o, branch.answering ? "guest" : "apprentice",
+          "“" + (branch.answering ? exchange.line : exchange.question) + "”",
+          button("branch-next", branch.answering ? "记入手记，回到柜台" : "听对方回答　→"),
+          requirement,
+        );
+      } else if (this.questioning) {
         body = dialogueScene(
           o, "guest",
           "“少的是营里的甲。寻常铺子打一把刀不稀奇，私接这些可要坐牢。账上还写着东西在库里，可修甲用的部件已经不见了。我在你们铺子旁捡着一片，你自己看。”",
           button("clue1", "接过甲片，看清戳印") + button("back-to-order", "回到订单", "quiet"),
         );
       } else {
-        const witness = witnessStatements.findIndex((entry) => entry.order === i);
-        const sideStory = availableSideStory(s);
         body = counterScene(
           o,
           "“" + o.line + "”",
@@ -530,30 +546,29 @@ export class PlayScene extends BaseScene {
   private act(a: string) {
     const s = this.run,
       p = s.phase;
-    if (a === "side-story" && p === "order" && !this.pendingVisit()) {
-      const sideStory = recordSideStory(s);
-      if (sideStory) {
-        this.store();
-        const control = ui.querySelector('[data-act="side-story"]');
-        if (control) control.textContent = "重读约定";
-        const requirement = "pledge" in sideStory
-          ? "<p>完成约定：选「" + visits[sideStory.pledge.order].options[sideStory.pledge.choice].label +
-            "」，交付至少合格的成品。</p>"
-          : "";
-        popup(sideStory.title, "<p>“" + sideStory.line + "”</p>" + requirement);
+    if (p === "order" && !this.pendingVisit()) {
+      if (a === "side-story" || a === "testimony") {
+        const exchange = a === "side-story" ? availableSideStory(s)
+          : witnessStatements.find((entry) => entry.order === s.completed);
+        if (!exchange) return;
+        this.branchTalk = { kind: a, answering: false };
+      } else if (a === "branch-next" && this.branchTalk) {
+        if (this.branchTalk.answering) {
+          if (this.branchTalk.kind === "side-story") recordSideStory(s);
+          else recordTestimony(s);
+          this.store();
+          this.branchTalk = undefined;
+        } else {
+          this.branchTalk.answering = true;
+        }
       }
-      return;
-    }
-    if (a === "testimony" && p === "order" && !this.pendingVisit()) {
-      const witness = witnessStatements.find((entry) => entry.order === s.completed);
-      if (witness) {
-        recordTestimony(s);
-        this.store();
-        const control = ui.querySelector('[data-act="testimony"]');
-        if (control) control.textContent = "重读证词";
-        popup(witness.name, "<p>“" + witness.line + "”</p><p>证词已记入手记。</p>");
+      if (a === "side-story" || a === "testimony" || a === "branch-next") {
+        this.draw();
+        ui.querySelector<HTMLButtonElement>(
+          this.branchTalk ? '[data-act="branch-next"]' : '[data-act="commission"]',
+        )?.focus({ preventScroll: true });
+        return;
       }
-      return;
     }
     if (a === "arrive") {
       const visit = this.pendingVisit();
