@@ -18,6 +18,7 @@ import {
 } from "../core/game";
 import story from "../core/story.json";
 import { art, button, dialog, identity, panel, popup, ui } from "./shared";
+import { isWorkshopPhase, updateWorkshop, workshopMarkup } from "./workshop";
 
 const nums = ["一", "二", "三"];
 const actionNames: Record<Ending, string> = {
@@ -25,7 +26,6 @@ const actionNames: Record<Ending, string> = {
   expose: "当众拿出证据",
   arrest: "让官差进门",
 };
-const forgePhases: Phase[] = ["heat", "strike", "quench", "inspect"];
 const detail = (key: string, val: string) =>
   "<div><dt>" + key + "</dt><dd>" + val + "</dd></div>";
 const group = (body: string) => '<dl class="figures">' + body + "</dl>";
@@ -40,6 +40,8 @@ export class PlayScene extends BaseScene {
   private started = 0;
   private threatPage = 0;
   private note = "";
+  private workshop: HTMLElement | null = null;
+  private heating = false;
   private clock!: HTMLElement | null;
   private cursor = 0;
   private until = 0;
@@ -57,6 +59,8 @@ export class PlayScene extends BaseScene {
     this.started = performance.now();
     this.threatPage = 0;
     this.note = "";
+    this.workshop = null;
+    this.heating = false;
     this.until = 0;
     const click = (e: Event) => {
       const target = (e.target as HTMLElement).closest<HTMLButtonElement>(
@@ -66,12 +70,20 @@ export class PlayScene extends BaseScene {
     };
     const space = (e: KeyboardEvent) => {
       if (e.code !== "Space" || dialog.open) return;
+      const focused = document.activeElement;
+      if (
+        focused instanceof HTMLButtonElement &&
+        (this.run.phase !== "strike" || focused.dataset.act !== "strike")
+      )
+        return;
       if (this.run.phase === "strike") {
         e.preventDefault();
         if (!e.repeat) this.act("strike");
-      } else if (document.activeElement === document.body && !e.repeat) {
+      } else if (focused === document.body && !e.repeat) {
         e.preventDefault();
-        ui.querySelector<HTMLButtonElement>(".sheet .primary")?.click();
+        ui.querySelector<HTMLButtonElement>(
+          this.workshop ? ".workshop [aria-current=step]" : ".sheet .primary",
+        )?.click();
       }
     };
     ui.addEventListener("click", click);
@@ -111,25 +123,11 @@ export class PlayScene extends BaseScene {
     else this.music(day === 1 ? "bgm_dusk" : "bgm_main", 0.32);
   }
   private draw() {
-    this.request?.abort();
-    this.clock = null;
     const s = this.run,
       i = orderIndex(s),
       o = orders[i],
       p = s.phase,
       day = this.day();
-    const forge = forgePhases.includes(p),
-      night = ["threat", "reminder", "final"].includes(p);
-    let bg = night || p === "night" ? "bg_courtyard" : "bg_dawn";
-    if (p === "end") bg = s.ending === "expose" ? "bg_dawn" : "bg_courtyard";
-    this.bg.setTexture(bg).setDisplaySize(1280, 720);
-    this.soundscape();
-    ui.className =
-      "play day" +
-      day +
-      (forge ? " forging" : "") +
-      (night ? " ominous" : "") +
-      (p === "end" ? " ending" : "");
     const goal = s.threatSeen
       ? "第三日黄昏前筹银　" + money(s.silver) + " / 30 两"
       : "独立看店，等师傅查账";
@@ -138,14 +136,49 @@ export class PlayScene extends BaseScene {
       identity() +
       '<div class="hud"><span>第' +
       nums[day] +
-      "日</span><span>银两 <b>" +
+      '日</span><span>银两 <b data-stat="silver">' +
       money(s.silver) +
-      "</b></span><span>口碑 <b>" +
+      '</b></span><span>口碑 <b data-stat="rep">' +
       s.rep +
       "</b></span>" +
       button("audio", this.muted ? "启音" : "静音", "mini") +
       button("journal", "手记", "mini") +
       "</div></header>";
+
+    if (isWorkshopPhase(p)) {
+      if (!this.workshop) {
+        this.bg.setTexture("bg_dawn").setDisplaySize(1280, 720);
+        this.soundscape();
+        ui.className = "play day" + day;
+        ui.innerHTML = hdr + workshopMarkup(i) + "<footer>" + goal + "</footer>";
+        this.workshop = ui.querySelector(".workshop")!;
+      }
+      const previous = this.workshop.dataset.phase;
+      updateWorkshop(this.workshop, s, p, i, this.heating, this.note);
+      this.clock = p === "strike" ? this.workshop.querySelector("#needle") : null;
+      if (this.clock) this.update();
+      if (p === "receipt" && previous !== p) {
+        ui.querySelector('[data-stat="silver"]')!.textContent = money(s.silver);
+        ui.querySelector('[data-stat="rep"]')!.textContent = String(s.rep);
+        ui.querySelector("footer")!.textContent = goal;
+        void this.reply(i);
+      }
+      return;
+    }
+
+    this.request?.abort();
+    this.workshop = null;
+    this.clock = null;
+    const night = ["threat", "reminder", "final"].includes(p);
+    let bg = night || p === "night" ? "bg_courtyard" : "bg_dawn";
+    if (p === "end") bg = s.ending === "expose" ? "bg_dawn" : "bg_courtyard";
+    this.bg.setTexture(bg).setDisplaySize(1280, 720);
+    this.soundscape();
+    ui.className =
+      "play day" +
+      day +
+      (night ? " ominous" : "") +
+      (p === "end" ? " ending" : "");
     let body = "";
     const figure = (
       id: string,
@@ -162,8 +195,7 @@ export class PlayScene extends BaseScene {
       "</small><b>" +
       name +
       "</b></figcaption></figure>";
-    const npc = (mood = "neutral") =>
-      figure(o.portrait, o.name, "青溪 · 来客", mood);
+    const npc = () => figure(o.portrait, o.name, "青溪 · 来客");
     const ticket = "订单 " + String(i + 1).padStart(2, "0") + " / 09";
     const job = group(
       detail("器型", o.item + " × 1") + detail("最高酬银", o.max + " 两"),
@@ -196,121 +228,6 @@ export class PlayScene extends BaseScene {
             (i === 5 ? button("ask", "追问营里的事", "quiet") : "") +
             catchup,
           job,
-        );
-    } else if (forge) {
-      const step =
-        p === "heat" ? 0 : p === "strike" ? 1 : p === "quench" ? 2 : 3;
-      const tools = [
-        "tool_furnace_hot",
-        "station_hot_ingot",
-        "tool_quench_bucket",
-        "item_" + o.icon,
-      ];
-      const headers = ["添炭起炉", "看准，再落锤", "趁热入水", "开件验货"];
-      const hints = [
-        "把铁料送入炉膛，等它烧红。",
-        "等指针进入中央亮区再落锤。",
-        "三锤已定。将铁件放入水槽，听它冷下来的声音。",
-        "顾客等在柜前。交付后，本单酬银和口碑一并记账。",
-      ];
-      const steps =
-        '<div class="steps">' +
-        ["加热", "锻打", "淬火", "验货"]
-          .map(
-            (n, j) =>
-              '<span class="' +
-              (j === step ? "active" : j < step ? "done" : "") +
-              '">' +
-              (j < step ? "✓ " : String(j + 1).padStart(2, "0") + " ") +
-              n +
-              "</span>",
-          )
-          .join("") +
-        "</div>";
-      const t = tuning(i);
-      const marks =
-        '<div class="marks">' +
-        [0, 1, 2]
-          .map(
-            (j) =>
-              "<span>" +
-              nums[j] +
-              "锤 <b>" +
-              (["偏锤", "命中", "正中"][s.hits[j]] ?? "○") +
-              "</b></span>",
-          )
-          .join("") +
-        "</div>";
-      const meter =
-        p === "strike"
-          ? '<div class="meter" style="--yellow:' +
-            t.yellow * 200 +
-            "%;--green:" +
-            t.green * 200 +
-            '%"><i></i><em></em><b id="needle"></b></div>' +
-            marks
-          : "";
-      const feedback =
-        p === "inspect"
-          ? group(
-              detail("成色", appraisal(s.hits, i).grade) +
-                detail("应收", money(appraisal(s.hits, i).money) + " 两"),
-            )
-          : "";
-      const actions = [
-        ["heat", "点炉加热"],
-        ["strike", "落锤　↧"],
-        ["quench", "入水淬火"],
-        ["deliver", "交给" + o.name + "　→"],
-      ][step];
-      const station =
-        step === 1
-          ? art("station_anvil", "anvil") +
-            art("station_hot_ingot", "billet") +
-            art("station_hammer", "swing")
-          : art(tools[step], "work-art");
-      body =
-        '<button type="button" class="workpiece" id="piece" aria-label="' +
-        actions[1] +
-        '" data-act="' +
-        actions[0] +
-        '">' +
-        station +
-        "</button>" +
-        caption(o.item, "砧上 · " + ticket) +
-        panel(
-          ticket + "　｜　" + o.name,
-          headers[step],
-          hints[step],
-          button(actions[0], actions[1]) +
-            (p === "strike" ? "<small>空格 / 点按</small>" : ""),
-          steps +
-            meter +
-            feedback +
-            '<div id="hit-note" aria-live="polite">' +
-            (p === "strike" || p === "quench" ? this.note : "") +
-            "</div>",
-        );
-    } else if (p === "receipt") {
-      const a = appraisal(s.hits, i);
-      body =
-        npc(a.grade === "瑕疵" ? "sad" : "happy") +
-        panel(
-          ticket + "　｜　收讫",
-          o.item + " · " + a.grade,
-          '<span id="voice"></span><small id="voice-source"></small>',
-          button(
-            "next",
-            s.completed === 9
-              ? "合上账本　→"
-              : s.completed % 3 === 0
-                ? "收拾柜台　→"
-                : "记下这单　→",
-          ),
-          group(
-            detail("入账", "+" + money(a.money) + " 两") +
-              detail("口碑", (a.rep > 0 ? "+" : "") + a.rep),
-          ),
         );
     } else if (p === "threat" || p === "reminder" || p === "final") {
       const speaker = figure("constable", "陈捕头", "青溪县衙 · 来访");
@@ -410,9 +327,6 @@ export class PlayScene extends BaseScene {
           ? "城西 · 清晨"
           : goal) +
       "</footer>";
-    this.clock = ui.querySelector("#needle");
-    if (this.clock) this.update();
-    if (p === "receipt") void this.reply(i);
   }
   update() {
     if (!this.clock || dialog.open) return;
@@ -618,10 +532,18 @@ export class PlayScene extends BaseScene {
       this.goto("heat");
       return;
     }
-    if (a === "heat" && p === "heat") {
+    if (a === "heat" && p === "heat" && !this.heating) {
       this.sfx("sfx_hiss", { volume: 0.55 });
-      this.started = performance.now();
-      this.goto("strike");
+      this.heating = true;
+      this.draw();
+      const duration = matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? 0
+        : this.ctx.config.workshop.heatAnimationMs;
+      this.time.delayedCall(duration, () => {
+        this.heating = false;
+        this.started = performance.now();
+        this.goto("strike");
+      });
       return;
     }
     if (a === "strike" && p === "strike") {
@@ -635,19 +557,15 @@ export class PlayScene extends BaseScene {
         "正中 · " + s.streak + " 连击",
       ][v];
       this.sfx(["sfx_miss", "sfx_hammer_light", "sfx_hammer_heavy"][v]);
+      this.fx("strike", v === 0 ? "fx_crack" : "fx_spark");
       this.store();
-      if (s.phase === "strike") {
-        const marks = ui.querySelectorAll(".marks b");
-        marks[s.hits.length - 1].textContent = ["偏锤", "命中", "正中"][v];
-        ui.querySelector("#hit-note")!.textContent = this.note;
-      } else this.draw();
-      this.fx(v === 0 ? "fx_crack" : "fx_spark");
+      this.draw();
       return;
     }
     if (a === "quench" && p === "quench") {
       this.sfx("sfx_hiss");
       this.goto("inspect");
-      this.fx("fx_steam");
+      this.fx("quench", "fx_steam");
       return;
     }
     if (a === "deliver" && p === "inspect") {
@@ -705,14 +623,17 @@ export class PlayScene extends BaseScene {
     if (!matchMedia("(prefers-reduced-motion: reduce)").matches)
       this.cameras.main.shake(230, 0.003);
   }
-  private fx(id: string) {
-    const piece = ui.querySelector("#piece");
-    if (!piece) return;
-    piece.classList.remove("impact");
-    piece.getBoundingClientRect();
-    piece.classList.add("impact");
-    piece.insertAdjacentHTML("beforeend", art(id, "flare"));
-    const flash = piece.lastElementChild;
-    this.time.delayedCall(650, () => flash?.remove());
+  private fx(station: "strike" | "quench", id: string) {
+    const fixture = this.workshop?.querySelector(`[data-act="${station}"]`);
+    if (!fixture) return;
+    fixture.classList.remove("impact");
+    fixture.getBoundingClientRect();
+    fixture.classList.add("impact");
+    fixture.insertAdjacentHTML("beforeend", art(id, "flare"));
+    const flash = fixture.lastElementChild;
+    this.time.delayedCall(650, () => {
+      if (flash === fixture.lastElementChild) fixture.classList.remove("impact");
+      flash?.remove();
+    });
   }
 }

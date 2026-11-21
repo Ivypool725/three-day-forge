@@ -1,0 +1,477 @@
+.workshop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.workshop-floor {
+  --furnace-x: 54%;
+  --furnace-y: 49%;
+  --anvil-x: 69%;
+  --anvil-y: 67%;
+  --water-x: 43%;
+  --water-y: 85%;
+  --counter-x: 87%;
+  --counter-y: 59%;
+  --counter-height: clamp(94px, 23cqh, 210px);
+  --timing-y: 48%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100cqw, calc(100cqh * 16 / 9));
+  height: max(100cqh, calc(100cqw * 9 / 16));
+  transform: translate(-50%, -50%);
+}
+
+.work-station {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--station-width, clamp(82px, 14cqw, 200px));
+  height: var(--station-height, clamp(70px, 17cqh, 160px));
+  display: grid;
+  justify-items: center;
+  align-items: end;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  color: #fff0cd;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  pointer-events: auto;
+}
+
+.work-station:disabled {
+  cursor: default;
+}
+
+.work-station:active {
+  transform: translate(-50%, -50%);
+}
+
+.work-station:not(:disabled):hover .station-tag,
+.work-station[aria-current] .station-tag {
+  background: #f3cf8d;
+  color: #36271a;
+  border-color: #ffe5ae;
+  box-shadow: 0 0 0 3px #ffe1a82e, 0 4px 18px #21160e98;
+}
+
+.work-station[aria-current]::before,
+.workshop[data-heating] .furnace::before {
+  content: "";
+  position: absolute;
+  inset: 0 4% 8%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #ffb95340, #ffbc5b00 71%);
+  pointer-events: none;
+}
+
+.station-tag {
+  z-index: 1;
+  position: relative;
+  justify-self: center;
+  padding: 0.36em 0.74em;
+  border: 1px solid #e6c48a82;
+  border-radius: 3px;
+  background: #221b14e6;
+  font: 700 clamp(16px, 1.4cqw, 25px) / 1.3 "Microsoft YaHei", sans-serif;
+  box-shadow: 0 2px 8px #140e0a60;
+  white-space: nowrap;
+  transition: color 0.18s, background-color 0.18s;
+}
+
+.station-tag b {
+  display: none;
+  margin-left: 0.25em;
+}
+
+[aria-current] > .station-tag b {
+  display: inline;
+}
+
+.furnace {
+  --x: var(--furnace-x);
+  --y: var(--furnace-y);
+}
+
+.anvil-station {
+  --x: var(--anvil-x);
+  --y: var(--anvil-y);
+}
+
+.water {
+  --x: var(--water-x);
+  --y: var(--water-y);
+  --station-height: clamp(62px, 13cqh, 118px);
+}
+
+.counter {
+  --x: var(--counter-x);
+  --y: var(--counter-y);
+  --station-width: clamp(80px, 12cqw, 170px);
+  --station-height: var(--counter-height);
+  align-content: end;
+}
+
+.station-art {
+  display: none;
+}
+
+.counter-portrait {
+  display: block;
+  width: min(88%, 16cqh);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 1px solid #e6c48a9c;
+  border-radius: 3px;
+  box-shadow: 0 4px 18px #20160db3;
+  transition: filter 0.18s ease;
+}
+
+.counter .station-tag {
+  margin-top: 5px;
+}
+
+.workshop[data-phase="receipt"] .counter-portrait {
+  filter: brightness(1.1);
+}
+
+.station-hammer {
+  position: absolute;
+  z-index: 2;
+  top: -41%;
+  left: 48%;
+  width: 80%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  transform: rotate(-14deg);
+  transform-origin: 81% 65%;
+  opacity: 0;
+  filter: drop-shadow(0 5px 8px #1c140a8c);
+  pointer-events: none;
+}
+
+.workshop[data-phase="strike"] .station-hammer,
+.impact .station-hammer {
+  opacity: 1;
+}
+
+.impact .station-hammer {
+  animation: hammer-down 0.29s ease-out;
+}
+
+.workshop-piece {
+  --piece-x: calc(var(--furnace-x) - 11%);
+  --piece-y: calc(var(--furnace-y) + 8%);
+  position: absolute;
+  z-index: 2;
+  left: var(--piece-x);
+  top: var(--piece-y);
+  width: clamp(55px, 9cqw, 128px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%) scale(var(--piece-scale, 1));
+  transition: left 0.31s ease-in-out, top 0.31s ease-in-out, transform 0.24s ease;
+}
+
+.workshop-piece img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: opacity 0.2s ease, filter 0.3s ease;
+}
+
+.workshop[data-phase="heat"]:not([data-heating]) .workshop-ingot {
+  filter: saturate(0.33) brightness(0.58) drop-shadow(0 4px 4px #150f0adb);
+}
+
+.workshop-ingot {
+  filter: drop-shadow(0 2px 10px #ff7e2870);
+}
+
+.workshop-finished {
+  opacity: 0;
+  filter: drop-shadow(0 5px 7px #181c17e6);
+}
+
+.workshop[data-heating] .workshop-piece {
+  --piece-x: var(--furnace-x);
+  --piece-y: var(--furnace-y);
+}
+
+.workshop[data-phase="strike"] .workshop-piece {
+  --piece-x: var(--anvil-x);
+  --piece-y: calc(var(--anvil-y) - 4%);
+  --piece-scale: 1.28;
+}
+
+.workshop:is([data-phase="quench"], [data-phase="inspect"]) .workshop-piece {
+  --piece-x: var(--water-x);
+  --piece-y: calc(var(--water-y) - 3%);
+}
+
+.workshop[data-phase="receipt"] .workshop-piece {
+  --piece-x: calc(var(--counter-x) - 6%);
+  --piece-y: calc(var(--counter-y) + 4%);
+}
+
+.workshop:is([data-phase="inspect"], [data-phase="receipt"]) .workshop-ingot {
+  opacity: 0;
+}
+
+.workshop:is([data-phase="inspect"], [data-phase="receipt"]) .workshop-finished {
+  opacity: 1;
+}
+
+.workshop-timing {
+  position: absolute;
+  z-index: 3;
+  top: var(--timing-y);
+  left: var(--anvil-x);
+  width: clamp(232px, 29cqw, 480px);
+  padding: 12px 15px 10px;
+  transform: translate(-50%, -100%);
+  color: #f7e9c8;
+  background: #221b15ec;
+  border: 1px solid #dfb979a8;
+  border-radius: 4px;
+  box-shadow: 0 8px 24px #1a130e90;
+}
+
+.workshop-timing .meter {
+  height: clamp(18px, 3.2cqh, 29px);
+  margin: 4px 1px 10px;
+}
+
+.workshop-timing #needle {
+  width: clamp(6px, 0.55cqw, 9px);
+}
+
+.workshop-timing .marks,
+.workshop-timing .marks b {
+  color: #f5e3c0;
+  font-size: clamp(14px, 1.3cqw, 22px);
+}
+
+.workshop-timing #hit-note {
+  margin: 5px 0 0;
+  color: #f2cd91;
+  font-size: clamp(14px, 1.3cqw, 21px);
+}
+
+.work-order {
+  position: absolute;
+  z-index: 4;
+  top: 24%;
+  left: 5vw;
+  width: clamp(218px, 26cqw, 435px);
+  padding: clamp(12px, 1.35cqw, 21px);
+  color: #fbecd0;
+  background: #221b15e8;
+  border: 1px solid #d9af6c85;
+  border-radius: 4px;
+  box-shadow: 0 7px 24px #140f0a73;
+  pointer-events: auto;
+}
+
+.work-order .meta,
+.work-order-item p {
+  color: #e3c49a;
+}
+
+.work-order .meta {
+  font-size: clamp(13px, 1.13cqw, 19px);
+}
+
+.work-order-item {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  margin-block: 7px 9px;
+}
+
+.work-order-item .order-icon {
+  width: clamp(34px, 4.5cqw, 64px);
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+
+.work-order h1 {
+  font: 700 clamp(28px, 3cqw, 54px) / 1.15 var(--song);
+}
+
+.work-order-item p,
+.work-order-hint,
+.work-order-result p {
+  font-size: clamp(16px, 1.4cqw, 24px);
+  line-height: 1.55;
+}
+
+.work-order-hint {
+  border-top: 1px solid #e4bf804f;
+  padding-top: 9px;
+}
+
+.work-order-result {
+  margin-top: 7px;
+}
+
+.work-order-result strong {
+  display: block;
+  color: #ffe1a4;
+  font-size: clamp(17px, 1.5cqw, 26px);
+}
+
+.work-order-result p:not(:empty) {
+  margin-top: 5px;
+}
+
+.work-order-result small {
+  display: block;
+  color: #dfbc91;
+  font-size: clamp(12px, 1.04cqw, 17px);
+  margin: 3px 0;
+}
+
+.work-order-result .primary {
+  margin-top: 6px;
+  background: #edc485;
+  color: #392719;
+  font-size: clamp(16px, 1.4cqw, 24px);
+}
+
+.work-order-result :is(p, small):empty,
+.work-order-result button:disabled {
+  display: none;
+}
+
+.workshop-payout {
+  position: absolute;
+  z-index: 3;
+  left: var(--counter-x);
+  top: calc(var(--counter-y) + var(--counter-height) / 2 + 8px);
+  transform: translateX(-50%);
+  padding: 0.45em 0.75em;
+  border-radius: 4px;
+  background: #262219ed;
+  color: #ffe0a0;
+  box-shadow: 0 4px 16px #18110b8c;
+  font-weight: 700;
+  font-size: clamp(16px, 1.45cqw, 25px);
+  white-space: nowrap;
+  animation: payout-in 0.38s ease-out;
+}
+
+.work-station .flare {
+  position: absolute;
+  z-index: 3;
+  width: 86%;
+  left: 7%;
+  bottom: 32%;
+  pointer-events: none;
+  animation: flare 0.6s forwards;
+}
+
+.anvil-station .flare {
+  width: 102%;
+  left: -1%;
+}
+
+@keyframes hammer-down {
+  0% { transform: rotate(-28deg); }
+  35% { transform: translate(-4%, 12%) rotate(-48deg); }
+  72% { transform: rotate(-4deg); }
+}
+
+@keyframes flare {
+  from { opacity: 1; transform: scale(0.6); }
+  to { opacity: 0; transform: scale(1.35) translateY(-20%); }
+}
+
+@keyframes payout-in {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+}
+
+@media (max-height: 525px) and (min-aspect-ratio: 7/5) {
+  .work-order {
+    top: 19%;
+    left: 3vw;
+    padding: 10px 12px;
+    width: clamp(162px, 24cqw, 220px);
+  }
+  .work-order-item {
+    margin-block: 4px;
+  }
+  .work-order-hint {
+    padding-top: 5px;
+  }
+  .work-order-result .primary {
+    padding: 0.3em 0.62em;
+  }
+}
+
+@media (max-aspect-ratio: 7/5) {
+  .workshop-floor {
+    --furnace-x: 24%;
+    --furnace-y: 29%;
+    --anvil-x: 73%;
+    --anvil-y: 54%;
+    --water-x: 24%;
+    --water-y: 54%;
+    --counter-x: 73%;
+    --counter-y: 27%;
+    --counter-height: clamp(69px, 12cqh, 117px);
+    --timing-y: 46%;
+    width: 100%;
+    height: 100%;
+  }
+  .work-station {
+    --station-width: clamp(83px, 25cqw, 142px);
+    --station-height: clamp(69px, 12cqh, 117px);
+    align-content: end;
+  }
+  .station-art {
+    display: block;
+    position: absolute;
+    bottom: 11px;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 7px #17130cbf);
+  }
+  .station-hammer {
+    top: -14%;
+    left: 57%;
+    width: 59%;
+  }
+  .station-tag {
+    font-size: 13px;
+  }
+  .counter-portrait {
+    width: min(80%, 11cqh);
+  }
+  .workshop-timing {
+    left: 69%;
+    width: clamp(158px, 53cqw, 295px);
+    padding: 7px 8px 6px;
+  }
+  .work-order {
+    top: auto;
+    left: 5vw;
+    bottom: clamp(52px, 10cqh, 84px);
+    width: min(90vw, 365px);
+    padding: 12px 14px;
+  }
+  .work-order-item {
+    margin-block: 4px;
+  }
+  .work-order-hint {
+    padding-top: 5px;
+  }
+  .work-order-result {
+    margin-top: 4px;
+  }
+}
