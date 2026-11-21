@@ -1,5 +1,12 @@
 {
   "images": {
+    "sprite_apprentice": "assets/images/sprite/sprite_apprentice.png",
+    "sprite_farmer": "assets/images/sprite/sprite_farmer.png",
+    "sprite_cook": "assets/images/sprite/sprite_cook.png",
+    "sprite_hunter": "assets/images/sprite/sprite_hunter.png",
+    "sprite_guard": "assets/images/sprite/sprite_guard.png",
+    "sprite_traveler": "assets/images/sprite/sprite_traveler.png",
+    "bg_shop_pixel": "assets/images/bg/bg_shop_pixel.webp",
     "tool_furnace_hot": "assets/images/tool/tool_furnace_hot.webp",
     "tool_quench_bucket": "assets/images/tool/tool_quench_bucket.webp",
     "item_chest": "assets/images/item/item_chest.webp",
