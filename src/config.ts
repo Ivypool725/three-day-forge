@@ -1,7 +1,13 @@
 export const CONFIG = {
   view: { width: 1280, height: 720 },
   shop: { left: 21, start: 31, guest: 71, talkDistance: 17, speed: 55 },
-  workshop: { heatAnimationMs: 420 },
+  workshop: {
+    heatAnimationMs: 420,
+    sound: {
+      heat: { id: "sfx_furnace_ignite", startMs: 250, durationMs: 740, fadeInMs: 35, fadeOutMs: 320, volume: 0.36 },
+      quench: { id: "sfx_quench", startMs: 0, durationMs: 1100, fadeInMs: 25, fadeOutMs: 700, volume: 0.5 },
+    },
+  },
   forge: {
     tutorialGreen: 0.2,
     baseGreen: 0.173,

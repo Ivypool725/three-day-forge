@@ -36,6 +36,8 @@
   "sounds": {
     "bgm_main": "assets/sounds/bgm_main.mp3",
     "sfx_knock": "assets/sounds/knock.mp3",
+    "sfx_furnace_ignite": "assets/sounds/furnace-ignite.mp3",
+    "sfx_quench": "assets/sounds/quench.mp3",
     "bgm_embers": "assets/sounds/bgm_embers.mp3",
     "bgm_dusk": "assets/sounds/bgm_dusk.mp3"
   },

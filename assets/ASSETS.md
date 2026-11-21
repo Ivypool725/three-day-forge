@@ -307,7 +307,9 @@
 | `sfx_hammer_light` | 小锤，清脆的“叮” |
 | `sfx_hammer_heavy` | 大锤，低沉的“当” |
 | `sfx_miss` | 没打中、空敲 |
-| `sfx_hiss` | 淬火、冒蒸汽 |
+| `sfx_furnace_ignite` | 点炉时的起火声（`sounds/furnace-ignite.mp3`） |
+| `sfx_quench` | 热铁入水后的嘶响（`sounds/quench.mp3`） |
+| `sfx_hiss` | 加热和淬火音效的合成备用声 |
 | `sfx_coin` | 收钱 |
 | `sfx_deliver` | 交付成功 |
 | `sfx_scrap` | 出废品、交付失败 |

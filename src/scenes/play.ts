@@ -154,6 +154,37 @@ export class PlayScene extends BaseScene {
       this.music();
     else this.music(day === 1 ? "bgm_dusk" : "bgm_main", 0.32);
   }
+  private playWorkshopSound(action: "heat" | "quench") {
+    if (this.muted) return;
+    const { id, startMs, durationMs, fadeInMs, fadeOutMs, volume } =
+      this.ctx.config.workshop.sound[action];
+    if (!this.cache.audio.exists(id)) {
+      this.sfx("sfx_hiss", { volume });
+      return;
+    }
+
+    const sound = this.sound.add(id);
+    sound.addMarker({ name: action, start: startMs / 1000, duration: durationMs / 1000 });
+    if (!sound.play(action, { volume: 0 })) {
+      sound.destroy();
+      return;
+    }
+
+    const fade = this.tweens.chain({
+      targets: sound,
+      tweens: [
+        { volume, duration: fadeInMs },
+        { volume: 0, delay: durationMs - fadeInMs - fadeOutMs, duration: fadeOutMs },
+      ],
+    });
+    const cleanup = () => {
+      this.events.off("shutdown", cleanup);
+      fade.stop();
+      sound.destroy();
+    };
+    sound.once(Phaser.Sound.Events.COMPLETE, cleanup);
+    this.events.once("shutdown", cleanup);
+  }
   private counter(
     order: (typeof orders)[number],
     line: string,
@@ -637,7 +668,7 @@ export class PlayScene extends BaseScene {
       return;
     }
     if (a === "heat" && p === "heat" && !this.heating) {
-      this.sfx("sfx_hiss", { volume: 0.55 });
+      this.playWorkshopSound("heat");
       this.heating = true;
       this.draw();
       const duration = matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -674,7 +705,7 @@ export class PlayScene extends BaseScene {
       return;
     }
     if (a === "quench" && p === "quench") {
-      this.sfx("sfx_hiss");
+      this.playWorkshopSound("quench");
       this.goto("inspect");
       this.fx("quench", "fx_steam");
       return;
