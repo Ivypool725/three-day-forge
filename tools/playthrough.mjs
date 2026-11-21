@@ -120,6 +120,7 @@ try {
   await choose("open");
   assert.equal((await read()).silver, 0);
   for (let i = 0; i < 9; i++) {
+    await choose("talk");
     if ((route === "expose" || route === "arrest") && i === 5) {
       await choose("ask");
       await choose("clue1");

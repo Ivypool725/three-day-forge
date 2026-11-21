@@ -9,7 +9,8 @@ import { playRecipe, RECIPES, type PlayOptions } from './synth';
 // 把 assets/ 下所有图片和声音交给 Vite 处理，得到可以加载的地址。
 // 开发时是本地地址；npm run pack 时会变成内联数据，整个游戏只剩一个 index.html。
 const FILES = import.meta.glob([
-  "/assets/images/bg/{bg_dawn.webp,bg_courtyard.webp}",
+  "/assets/images/bg/{bg_dawn.webp,bg_courtyard.webp,bg_shop_pixel.webp}",
+  "/assets/images/sprite/*.png",
   "/assets/images/portrait/*.webp",
   "/assets/images/tool/{tool_furnace_hot.webp,tool_quench_bucket.webp}",
   "/assets/images/item/{item_chest.webp,item_dagger.webp,item_hammer.webp,item_hoe.webp,item_knife.webp,item_order_slip.webp,item_scrap.webp,item_sickle.webp,item_sword.webp}",

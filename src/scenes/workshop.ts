@@ -1,6 +1,6 @@
 import { appraisal, forgeTarget, money, type GameState, type Phase } from "../core/game";
 import { orders } from "../core/orders";
-import { art, button } from "./shared";
+import { art } from "./shared";
 import "./workshop.css";
 
 const steps = {
@@ -8,7 +8,6 @@ const steps = {
   strike: { action: "strike", hint: "指针进绿区时点铁砧，或按空格。" },
   quench: { action: "quench", hint: "铁坯已打好，点水槽淬火。" },
   inspect: { action: "deliver", hint: "成品已出炉，递给柜台的顾客。" },
-  receipt: { action: "next", hint: "这单已记到账上。" },
 } as const;
 
 type WorkshopPhase = keyof typeof steps;
@@ -19,13 +18,6 @@ export function isWorkshopPhase(phase: Phase): phase is WorkshopPhase {
 
 export function workshopMarkup(index: number) {
   const o = orders[index];
-  const next =
-    index === orders.length - 1
-      ? "合上账本"
-      : (index + 1) % 3 === 0
-        ? "收拾柜台"
-        : "招呼下一位";
-
   return `
     <section class="workshop" aria-label="铁匠铺工作区">
       <div class="workshop-floor">
@@ -59,7 +51,6 @@ export function workshopMarkup(index: number) {
           </div>
           <p id="hit-note" role="status"></p>
         </div>
-        <div class="workshop-payout" aria-hidden="true" hidden></div>
       </div>
       <aside class="work-order" aria-label="当前订单">
         <span class="meta">订单 ${String(index + 1).padStart(2, "0")} / ${orders.length}</span>
@@ -68,12 +59,7 @@ export function workshopMarkup(index: number) {
           <div><h1>${o.item}</h1><p>${o.name} · 最高 ${o.max} 两</p></div>
         </div>
         <p class="work-order-hint" role="status"></p>
-        <div class="work-order-result" hidden>
-          <strong></strong>
-          <p id="voice"></p>
-          <small id="voice-source"></small>
-          ${button("next", next)}
-        </div>
+        <strong class="work-order-result" hidden></strong>
       </aside>
     </section>`;
 }
@@ -114,15 +100,9 @@ export function updateWorkshop(
   });
 
   const result = root.querySelector<HTMLElement>(".work-order-result")!;
-  const payout = root.querySelector<HTMLElement>(".workshop-payout")!;
-  result.hidden = phase !== "inspect" && phase !== "receipt";
-  payout.hidden = phase !== "receipt";
+  result.hidden = phase !== "inspect";
   if (!result.hidden) {
     const a = appraisal(state.hits, index);
-    const rep = (a.rep > 0 ? "+" : "") + a.rep;
-    result.querySelector("strong")!.textContent = phase === "receipt"
-      ? `${a.grade} · +${money(a.money)} 两 · 口碑 ${rep}`
-      : `${a.grade} · 应收 ${money(a.money)} 两`;
-    payout.textContent = `+${money(a.money)} 两 · 口碑 ${rep}`;
+    result.textContent = `${a.grade} · 应收 ${money(a.money)} 两`;
   }
 }
