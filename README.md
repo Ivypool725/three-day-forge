@@ -6,7 +6,7 @@
 |---|---|---|---|
 |  |  |  |  |
 
-**双击 [release/index.html](release/index.html) 即可离线开铺。** 师傅留下了一封信。今天起，你要独自替他看三天铺子。客人怎么评价你的手艺、打烊后你愿意停下来看什么，都会改变第三日黄昏的结果。
+师傅留下了一封信。今天起，你要独自替他看三天铺子。客人怎么评价你的手艺、打烊后你愿意停下来看什么，都会改变第三日黄昏的结果。
 
 ## 第一次看店
 
@@ -16,7 +16,7 @@
 
 ## 试玩、录屏和工程入口
 
-- [离线游戏](release/index.html) · [有原声的实机录屏（含剧情剧透）](demo.mp4) · [现场五分钟演示提纲](docs/DEMO.md)
+- [有原声的实机录屏（含剧情剧透）](demo.mp4) · [现场五分钟演示提纲](docs/DEMO.md)
 - [游戏卡](GAME_CARD.md) · [小组设计原稿](docs/世界观与设计定稿.wps) · [逐项世界观对照及四结局条件（剧透）](docs/WORLD.md)
 - [开发与实测记录](DEVELOPMENT.md) · [横屏实机](evidence/mobile-order.jpg) · [竖屏实机](evidence/portrait-phone.jpg)
 
@@ -27,7 +27,9 @@ npm ci
 npm run dev
 ```
 
-打开终端打印的本地地址。手机与电脑在同一网络时，可用 `npm run dev -- --host 0.0.0.0`，在手机浏览器打开终端给出的 Network 地址。类型与规则检查用 `npm run check`，构建用 `npm run build`，重新生成离线单文件用 `npm run pack`。试玩器用系统 Chrome，命令示例为 `node tools/playthrough.mjs http://127.0.0.1:5173 expose mobile`。
+打开终端打印的本地地址。手机与电脑在同一网络时，可用 `npm run dev -- --host 0.0.0.0`，在手机浏览器打开终端给出的 Network 地址。类型与规则检查用 `npm run check`，构建用 `npm run build`。试玩器用系统 Chrome，命令示例为 `node tools/playthrough.mjs http://127.0.0.1:5173 expose mobile`。
+
+**离线版**在安装依赖后运行 `npm run pack` 生成。打包完成后，双击本机的 `release/index.html` 即可离线试玩。`release/` 是本地打包产物，已被 Git 忽略。
 
 **可选在线顾客回应**在项目根目录的本机 `.env` 设置 `KSYUN_API_KEY` 后重启开发服务，同源 `/api/customer` 会请求课程提供的 `mimo-v2.6-flash`。服务只发送当前普通顾客、本单器型、用途、天数和品质。界面先显示对应品质的本地台词；真实模型给出有效回复后更新为“AI 即兴”。空 Key、超时、错误、违规格式或离线文件模式均保留本地台词。关键证词、官差对白和结算走本地剧情。按组内安排，此包未设置 Key，本次未进行付费模型在线验收。
 
@@ -51,7 +53,7 @@ npm run dev
 | 美术与听感 | 晨铺、夜院、六人肖像；三日声景从拨弦、低沉变奏过渡到炉响，捕头来时响起三声敲门；[黄昏来客](evidence/ultimatum.jpg) |
 | 制作技术进阶 | 炉前多层工具联动，锤子回弹、命中火花、连击、淬火蒸汽；[落锤前](evidence/forge.jpg)与[落锤后](evidence/forge-hit.jpg)，声音同步见录屏 |
 | AI 原生进阶 | 运行时同源模型接口与规则隔离、超时保护、来源标识；[服务端实现](server/customer.mjs)、[模拟接口测试](tests/ai.test.ts)和[实测边界](DEVELOPMENT.md)。真实模型回复待配置课程 Key 后取证 |
-| 工程与展示 | 包含源码、隐藏 Git 历史、离线入口、录屏、展示提纲。本仓库的 Codex 提交记录标识制作工具，组员按实际参与补填 |
+| 工程与展示 | 包含源码、Git 历史、离线打包命令、录屏和展示提纲。本仓库的 Codex 提交记录标识制作工具，组员按实际参与补填 |
 
 ## 素材来源与使用范围
 
